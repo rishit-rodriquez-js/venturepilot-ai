@@ -52,13 +52,15 @@ export const MarketResearchRAGTab: React.FC<RAGProps> = ({ projectId }) => {
     setRagError(null);
     try {
       // 1. Direct Supabase Document Insert
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'pdf';
       await supabase.from('documents').insert({
         project_id: projectId,
         file_name: file.name,
         file_path: `/storage/${projectId}/${file.name}`,
+        file_type: fileExtension,
         file_size_bytes: file.size || 1024 * 128,
         chunk_count: 64,
-        status: 'completed'
+        status: 'Ready'
       });
 
       // 2. Also notify backend API

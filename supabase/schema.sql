@@ -175,6 +175,7 @@ CREATE TABLE IF NOT EXISTS public.documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
     file_name TEXT NOT NULL,
+    file_path TEXT,
     file_type TEXT NOT NULL DEFAULT 'pdf',
     file_size_bytes INT NOT NULL DEFAULT 0,
     chunk_count INT DEFAULT 0,
