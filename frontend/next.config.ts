@@ -1,12 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   cleanDistDir: true,
   reactStrictMode: true,
-  devIndicators: {
-    appIsrStatus: false,
-    buildActivity: false,
-  },
+  outputFileTracingRoot: path.join(__dirname, "./"),
   typescript: {
     ignoreBuildErrors: true
   },
