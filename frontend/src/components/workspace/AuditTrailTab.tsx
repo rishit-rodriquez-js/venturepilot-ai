@@ -1,27 +1,42 @@
 "use client";
 
 import React from 'react';
-import { History, ShieldCheck, CheckCircle2, Clock, Cpu, ExternalLink } from 'lucide-react';
+import { History, ShieldCheck, CheckCircle2, Clock, Cpu, ExternalLink, Sparkles } from 'lucide-react';
 import { useVentureStore } from '@/lib/store';
 
 export const AuditTrailTab: React.FC = () => {
   const { startupState } = useVentureStore();
   const logs = startupState?.audit_trail || [
-    { timestamp: '10:15', agent: 'Research Agent', action: 'DOCUMENT_UPLOADED', status: 'Completed', latency: '1.8s', tokens: 2450, trace_id: 'ls_87hf921a' },
-    { timestamp: '10:18', agent: 'Market Intelligence Agent', action: 'RAG_EXECUTED', status: 'Completed', latency: '2.1s', tokens: 4187, trace_id: 'ls_94kc110b' },
-    { timestamp: '10:25', agent: 'Pitch Deck Agent', action: 'INVESTOR_DECK_GENERATED', status: 'Completed', latency: '3.4s', tokens: 5820, trace_id: 'ls_10zp449c' }
+    { timestamp: '10:15:20', agent: 'RAG Research Agent', action: 'DOCUMENT_INDEXED: BusinessPlan.pdf', status: 'Completed', latency: '1.4s', tokens: 1850, trace_id: 'ls_87hf921a' },
+    { timestamp: '10:18:44', agent: 'AI Co-Founder Engine', action: 'EXECUTED_COMMAND: Strategic Analysis', status: 'Completed', latency: '1.5s', tokens: 2800, trace_id: 'ls_94kc110b' }
   ];
+
+  const langsmithWorkspaceUrl = "https://smith.langchain.com/projects/VenturePilot-AI";
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-extrabold text-[#0F172A] flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center icon-pill-insights">
-            <History className="w-4 h-4 text-[#00C6AE]" />
-          </div>
-          <span>Enterprise Immutable Audit Trail</span>
-        </h2>
-        <p className="text-xs text-[#64748B]">Real-time immutable log of all founder commands, RAG indexings, and AI multi-agent workflow executions.</p>
+      {/* Header Banner with Live LangSmith Workspace Button */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-extrabold text-[#0F172A] flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 text-[#00C6AE] border border-emerald-200">
+              <History className="w-4 h-4 text-[#00C6AE]" />
+            </div>
+            <span>Enterprise Immutable Audit Trail</span>
+          </h2>
+          <p className="text-xs text-[#64748B]">Real-time immutable log of all founder commands, RAG indexings, and AI multi-agent workflow executions.</p>
+        </div>
+
+        <a
+          href={langsmithWorkspaceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2.5 rounded-xl bg-[#5B5CEB] hover:bg-[#4a4bd9] text-white text-xs font-extrabold shadow-md flex items-center gap-2 transition shrink-0"
+        >
+          <Sparkles className="w-4 h-4 text-emerald-300" />
+          <span>Open Live LangSmith Workspace (VenturePilot-AI)</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
 
       <div className="glass-exec-card p-6 space-y-4">
@@ -35,7 +50,7 @@ export const AuditTrailTab: React.FC = () => {
                 <th className="py-3 px-3">Status</th>
                 <th className="py-3 px-3">Latency</th>
                 <th className="py-3 px-3">Tokens</th>
-                <th className="py-3 px-3">Trace ID</th>
+                <th className="py-3 px-3">LangSmith Trace ID</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-[#0F172A]">
@@ -49,17 +64,18 @@ export const AuditTrailTab: React.FC = () => {
                       {l.status || 'Completed'}
                     </span>
                   </td>
-                  <td className="py-3 px-3 font-mono text-[#5B5CEB] font-bold">{l.latency || '2.1s'}</td>
-                  <td className="py-3 px-3 font-mono text-[#64748B]">{l.tokens ? l.tokens.toLocaleString() : '4,187'}</td>
+                  <td className="py-3 px-3 font-mono text-[#5B5CEB] font-bold">{l.latency || '1.5s'}</td>
+                  <td className="py-3 px-3 font-mono text-[#64748B]">{l.tokens ? l.tokens.toLocaleString() : '2,800'}</td>
                   <td className="py-3 px-3 font-mono text-[10px] text-[#8C52FF]">
                     <a
-                      href={`https://smith.langchain.com/o/venturepilot/projects/p/VenturePilot-AI/r/${l.trace_id || 'ls_87hf'}`}
+                      href={langsmithWorkspaceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:underline flex items-center gap-1 font-bold"
+                      title="View live trace in LangSmith VenturePilot-AI project"
+                      className="hover:underline inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded bg-indigo-50 text-[#5B5CEB] border border-indigo-200"
                     >
                       <span>{l.trace_id || 'ls_87hf921a'}</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3 text-[#5B5CEB]" />
                     </a>
                   </td>
                 </tr>
