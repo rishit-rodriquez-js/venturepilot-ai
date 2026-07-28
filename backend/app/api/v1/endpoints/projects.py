@@ -10,7 +10,10 @@ from app.services.export_service import export_service
 
 router = APIRouter()
 
+from typing import Dict, Any, List, Optional
+
 class CreateProjectRequest(BaseModel):
+    id: Optional[str] = None
     name: str
     industry: str
     problem_statement: str
@@ -40,7 +43,8 @@ async def create_project(req: CreateProjectRequest, current_user: UserContext = 
         problem=req.problem_statement,
         solution=req.solution_overview,
         funding_goal=req.funding_goal,
-        business_model=req.business_model
+        business_model=req.business_model,
+        project_id=req.id
     )
 
 @router.get("/{project_id}")

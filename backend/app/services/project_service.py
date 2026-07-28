@@ -87,8 +87,8 @@ class ProjectService:
         """Strict user data isolation: Return only projects belonging to user_id (empty list for new users)."""
         return self.user_projects_db.get(user_id, [])
 
-    def create_user_project(self, user_id: str, name: str, industry: str, problem: str, solution: str, funding_goal: str = "₹2.0 Crore", business_model: str = "SaaS Subscription + Marketplace") -> Dict[str, Any]:
-        p_id = f"proj-{int(datetime.now().timestamp())}"
+    def create_user_project(self, user_id: str, name: str, industry: str, problem: str, solution: str, funding_goal: str = "₹2.0 Crore", business_model: str = "SaaS Subscription + Marketplace", project_id: Optional[str] = None) -> Dict[str, Any]:
+        p_id = project_id or f"proj-{int(datetime.now().timestamp())}"
         state = self.get_template_project(p_id, user_id, name, industry, problem, solution)
 
         state["financials"]["seed_ask_inr"] = funding_goal

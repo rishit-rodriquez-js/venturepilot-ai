@@ -84,6 +84,8 @@ export default function DashboardPage() {
         }
 
         const authUser = data.session.user;
+        console.log("[Authenticated User Retrieved]", authUser.id);
+
         const currentProfile = {
           id: authUser.id,
           email: authUser.email || 'you@example.com',
@@ -94,20 +96,52 @@ export default function DashboardPage() {
 
         setUser(currentProfile);
 
-        // Fetch user-isolated projects for this owner_id
+        // 2. Dashboard Reload: Fetch user-isolated projects directly from Supabase Database
+        console.log("[Dashboard Reload Started] Querying Supabase projects for owner_id:", authUser.id);
         try {
-          const res = await apiClient.get('/projects', {
-            headers: { Authorization: `Bearer demo-jwt-${authUser.id}` }
-          });
-          if (res.data && Array.isArray(res.data)) {
-            const userProjs = res.data
-              .map((p: any) => p.project || p)
-              .filter((p: Project) => !p.owner_id || p.owner_id === authUser.id);
-            setProjects(userProjs);
-          } else {
-            setProjects([]);
+          const { data: dbProjects, error: dbFetchError } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('owner_id', authUser.id)
+            .order('created_at', { ascending: false });
+
+          if (dbFetchError) {
+            console.error("[Dashboard Reload Error]", {
+              table: 'projects',
+              operation: 'SELECT',
+              errorCode: dbFetchError.code,
+              message: dbFetchError.message,
+              details: dbFetchError.details
+            });
           }
+
+          console.log("[Projects Retrieved] Database returned project count:", dbProjects?.length || 0);
+          
+          let apiProjects: Project[] = [];
+          try {
+            const res = await apiClient.get('/projects', {
+              headers: { Authorization: `Bearer demo-jwt-${authUser.id}` }
+            });
+            if (res.data && Array.isArray(res.data)) {
+              apiProjects = res.data
+                .map((p: any) => p.project || p)
+                .filter((p: Project) => !p.owner_id || p.owner_id === authUser.id);
+            }
+          } catch (err) {}
+
+          const combinedMap = new Map<string, Project>();
+          if (dbProjects) {
+            dbProjects.forEach((p: any) => combinedMap.set(p.id, p));
+          }
+          apiProjects.forEach((p: Project) => {
+            if (!combinedMap.has(p.id)) combinedMap.set(p.id, p);
+          });
+
+          const finalProjects = Array.from(combinedMap.values());
+          console.log("[Dashboard Updated] Dashboard state updated with database single source of truth:", finalProjects.length);
+          setProjects(finalProjects);
         } catch (err) {
+          console.error("[Dashboard Load Error] Exception caught:", err);
           setProjects([]);
         }
       } catch (err) {
@@ -124,38 +158,185 @@ export default function DashboardPage() {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+
+    // 1. Retrieve Authenticated User
+    const { data: authData, error: authCheckErr } = await supabase.auth.getUser();
+    if (authCheckErr || !authData?.user) {
+      console.error("[Project Create Failed] Authenticated user not found:", authCheckErr);
+      alert("Authentication required. Please log in.");
+      router.push('/login');
+      return;
+    }
+    const authUser = authData.user;
+    console.log("[Authenticated User Retrieved]", authUser.id);
 
     setLoading(true);
 
     const projName = name.trim() || "My New Venture";
-    const projId = `proj-${Date.now().toString().slice(-6)}`;
-
     const effectiveIndustry = isCustomIndustry ? (customIndustry.trim() || 'Custom Industry') : industry;
     const effectiveFundingAmt = isCustomFunding ? (customFundingAmount.trim() || '₹1.0 Crore') : fundingAmount;
     const effectiveFundingStage = isCustomStage ? (customStage.trim() || 'Seed') : fundingStage;
     const effectiveFundingGoal = `${effectiveFundingAmt} (${effectiveFundingStage})`;
 
-    const newProj: Project = {
-      id: projId,
-      owner_id: user.id,
+    console.log("[Startup Wizard Completed] Inputs validated:", {
+      userId: authUser.id,
       name: projName,
-      tagline: `${effectiveIndustry} Venture Powered by Autonomous AI`,
       industry: effectiveIndustry,
-      target_market: country.includes('India') ? 'Indian Market' : 'Global Market',
-      problem_statement: problem || "Core industry friction points",
-      solution_overview: solution || "Autonomous LangGraph AI solution",
-      stage: "idea",
-      readiness_score: 75,
-      status: "Running",
-      created_at: new Date().toISOString()
-    };
+      fundingGoal: effectiveFundingGoal,
+      problem,
+      solution
+    });
 
-    let targetId = projId;
-    let createdProj: Project = newProj;
+    // 2. Profile Verification
+    console.log("[Profile Verification Started] Checking profile row for:", authUser.id);
+    const { data: profData, error: profErr } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', authUser.id)
+      .single();
 
+    if (profErr || !profData) {
+      console.log("[Profile Verification] Profile missing. Creating profile automatically for user:", authUser.id);
+      const { error: upsertErr } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authUser.id,
+          email: authUser.email || 'you@example.com',
+          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Founder',
+          company: authUser.user_metadata?.company || 'My Startup',
+          role: 'founder'
+        });
+      if (upsertErr) {
+        console.error("[Profile Verification Error]", {
+          table: 'profiles',
+          operation: 'UPSERT',
+          errorCode: upsertErr.code,
+          message: upsertErr.message,
+          details: upsertErr.details
+        });
+        alert(`Profile setup failed: ${upsertErr.message}`);
+        setLoading(false);
+        return;
+      }
+      console.log("[Profile Verified] Profile created successfully.");
+    } else {
+      console.log("[Profile Verified] Existing profile confirmed:", profData.id);
+    }
+
+    // 3. Create Project Record in Supabase
+    console.log("[Project Insert Started] Owner ID:", authUser.id);
+    const generatedUuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `proj-${Date.now()}`;
+
+    const { data: insertedDbProject, error: dbInsertError } = await supabase
+      .from('projects')
+      .insert({
+        id: generatedUuid,
+        owner_id: authUser.id,
+        name: projName,
+        tagline: `${effectiveIndustry} Venture Powered by Autonomous AI`,
+        industry: effectiveIndustry,
+        target_market: country.includes('India') ? 'Indian Market' : 'Global Market',
+        problem_statement: problem || "Core industry friction points",
+        solution_overview: solution || "Autonomous LangGraph AI solution",
+        funding_goal: effectiveFundingGoal,
+        business_model: businessModel,
+        stage: 'idea',
+        readiness_score: 75,
+        status: 'Running'
+      })
+      .select()
+      .single();
+
+    if (dbInsertError) {
+      console.error("[Project Insert Error]", {
+        table: 'projects',
+        operation: 'INSERT',
+        errorCode: dbInsertError.code,
+        message: dbInsertError.message,
+        details: dbInsertError.details,
+        hint: dbInsertError.hint
+      });
+      alert(`Database persistence failed on projects table: ${dbInsertError.message}`);
+      setLoading(false);
+      return; // Abort workflow immediately
+    }
+
+    const projectUuid = insertedDbProject.id;
+    console.log("[Project Insert Success] Project ID:", projectUuid);
+
+    // 4. Orchestrate Dependent Record Creation with Atomic Rollback
     try {
-      const res = await apiClient.post('/projects', {
+      console.log("[Business Plan Created] Inserting for project_id:", projectUuid);
+      const { error: bpErr } = await supabase.from('business_plans').insert({ project_id: projectUuid, executive_summary: `${projName} in ${effectiveIndustry} solving ${problem}` });
+      if (bpErr) throw { table: 'business_plans', error: bpErr };
+
+      console.log("[Market Research Created] Inserting for project_id:", projectUuid);
+      const { error: mrErr } = await supabase.from('market_research').insert({ project_id: projectUuid, query: `Market research for ${projName}` });
+      if (mrErr) throw { table: 'market_research', error: mrErr };
+
+      console.log("[Competitor Analysis Created] Inserting for project_id:", projectUuid);
+      const { error: caErr } = await supabase.from('competitor_analysis').insert({ project_id: projectUuid, competitors: [] });
+      if (caErr) throw { table: 'competitor_analysis', error: caErr };
+
+      console.log("[Technical Architecture Created] Inserting for project_id:", projectUuid);
+      const { error: taErr } = await supabase.from('technical_architecture').insert({ project_id: projectUuid });
+      if (taErr) throw { table: 'technical_architecture', error: taErr };
+
+      console.log("[Financial Model Created] Inserting for project_id:", projectUuid);
+      const { error: fmErr } = await supabase.from('financial_models').insert({ project_id: projectUuid, seed_ask_inr: effectiveFundingGoal });
+      if (fmErr) throw { table: 'financial_models', error: fmErr };
+
+      console.log("[Product Roadmap Created] Inserting for project_id:", projectUuid);
+      const { error: prErr } = await supabase.from('product_roadmaps').insert({ project_id: projectUuid });
+      if (prErr) throw { table: 'product_roadmaps', error: prErr };
+
+      console.log("[Marketing Strategy Created] Inserting for project_id:", projectUuid);
+      const { error: msErr } = await supabase.from('marketing_strategies').insert({ project_id: projectUuid });
+      if (msErr) throw { table: 'marketing_strategies', error: msErr };
+
+      console.log("[Investor Deck Created] Inserting for project_id:", projectUuid);
+      const { error: idErr } = await supabase.from('investor_decks').insert({ project_id: projectUuid });
+      if (idErr) throw { table: 'investor_decks', error: idErr };
+
+      console.log("[Workflow State Created] Inserting for project_id:", projectUuid);
+      const { error: wsErr } = await supabase.from('workflow_state').insert({ project_id: projectUuid });
+      if (wsErr) throw { table: 'workflow_state', error: wsErr };
+
+      console.log("[Startup Metrics Created] Inserting for project_id:", projectUuid);
+      const { error: smErr } = await supabase.from('startup_metrics').insert({ project_id: projectUuid });
+      if (smErr) throw { table: 'startup_metrics', error: smErr };
+
+      console.log("[Evaluation Created] Inserting for project_id:", projectUuid);
+      const { error: evErr } = await supabase.from('evaluations').insert({ project_id: projectUuid });
+      if (evErr) throw { table: 'evaluations', error: evErr };
+
+      console.log("[Audit Log Created] Inserting for project_id:", projectUuid);
+      await supabase.from('audit_logs').insert({ user_id: authUser.id, project_id: projectUuid, action: 'PROJECT_CREATE', details: { name: projName, industry: effectiveIndustry } });
+
+      console.log("[Initial Version Created] Inserting for project_id:", projectUuid);
+      await supabase.from('project_versions').insert({ project_id: projectUuid, version_number: 1, snapshot_label: 'v1.0 Initial Creation', snapshot_data: { name: projName, industry: effectiveIndustry } });
+
+      console.log("[Welcome Notification Created] Inserting for user_id:", authUser.id);
+      await supabase.from('notifications').insert({ user_id: authUser.id, project_id: projectUuid, title: 'Startup Created', message: `Welcome to ${projName}!` });
+
+    } catch (depErr: any) {
+      console.error("[Atomic Rollback Triggered] Dependent table insert failed:", {
+        table: depErr?.table || 'unknown',
+        errorCode: depErr?.error?.code,
+        message: depErr?.error?.message,
+        details: depErr?.error?.details
+      });
+      // Execute cleanup rollback to prevent orphaned project
+      await supabase.from('projects').delete().eq('id', projectUuid);
+      alert(`Failed to complete startup setup in table '${depErr?.table}': ${depErr?.error?.message || 'Database error'}`);
+      setLoading(false);
+      return;
+    }
+
+    // 5. Also notify backend API service
+    try {
+      await apiClient.post('/projects', {
+        id: projectUuid,
         name: projName,
         industry: effectiveIndustry,
         problem_statement: problem || "Core industry friction points",
@@ -163,40 +344,36 @@ export default function DashboardPage() {
         funding_goal: effectiveFundingGoal,
         business_model: businessModel
       }, {
-        headers: { Authorization: `Bearer demo-jwt-${user.id}` }
+        headers: { Authorization: `Bearer demo-jwt-${authUser.id}` }
       });
-      
-      if (res.data?.project) {
-        createdProj = { ...res.data.project, owner_id: user.id };
-        targetId = createdProj.id;
-      }
-      addProject(createdProj);
-      setActiveProject(createdProj);
-    } catch (err) {
-      addProject(newProj);
-      setActiveProject(newProj);
+    } catch (apiErr) {
+      console.warn("[Backend API Notice]", apiErr);
     }
 
-    // Immediately sync Dashboard list from database
-    try {
-      const listRes = await apiClient.get('/projects', {
-        headers: { Authorization: `Bearer demo-jwt-${user.id}` }
-      });
-      if (listRes.data && Array.isArray(listRes.data)) {
-        const userProjs = listRes.data
-          .map((p: any) => p.project || p)
-          .filter((p: Project) => !p.owner_id || p.owner_id === user.id);
-        setProjects(userProjs);
-      }
-    } catch (e) {}
+    // 6. Dashboard Reload & UI Update
+    console.log("[Dashboard Reload Started] Refetching database project list...");
+    const { data: refreshedDbProjects, error: refreshError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', authUser.id)
+      .order('created_at', { ascending: false });
 
-    // Initialize unified project state for this venture
-    initNewProjectState(createdProj, problem, solution, effectiveIndustry, country, effectiveFundingGoal, businessModel);
+    if (refreshError) {
+      console.error("[Dashboard Reload Error]", refreshError);
+    }
+
+    console.log("[Projects Retrieved] Database count:", refreshedDbProjects?.length || 0);
+    const finalProjectList = refreshedDbProjects && refreshedDbProjects.length > 0 ? refreshedDbProjects : [insertedDbProject];
+    setProjects(finalProjectList);
+    setActiveProject(insertedDbProject);
+    console.log("[Dashboard Updated] Dashboard state updated successfully.");
+
+    initNewProjectState(insertedDbProject, problem, solution, effectiveIndustry, country, effectiveFundingGoal, businessModel);
 
     setShowWizardModal(false);
     setWizardStep(1);
     setLoading(false);
-    router.push(`/workspace/${targetId}`);
+    router.push(`/workspace/${projectUuid}`);
   };
 
   const handleResumeProject = (proj: Project) => {
