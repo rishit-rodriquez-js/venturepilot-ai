@@ -220,7 +220,6 @@ export default function WorkspacePage() {
           {activeTab === 'overview' && <OverviewTab project={currentProj} aiData={aiResult} />}
           {activeTab === 'business_plan' && <BusinessPlanTab data={aiResult} />}
           {activeTab === 'market_research' && <MarketResearchRAGTab projectId={projectId} />}
-          {activeTab === 'competitor_analysis' && <CompetitorAnalysisTab />}
           {activeTab === 'technical_architecture' && <TechnicalArchitectureView data={aiResult?.tech_architecture} />}
           {activeTab === 'financial_model' && <FinancialModelTab data={aiResult?.financials} />}
           {activeTab === 'product_roadmap' && <ProductRoadmapTab data={aiResult?.product_roadmap} />}

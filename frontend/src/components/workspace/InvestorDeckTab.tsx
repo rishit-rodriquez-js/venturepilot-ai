@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Presentation, Download, ChevronLeft, ChevronRight, Play, CheckCircle2, Award, Sparkles, RefreshCw } from 'lucide-react';
+import { Presentation, Download, ChevronLeft, ChevronRight, CheckCircle2, Award, Sparkles, RefreshCw } from 'lucide-react';
 import { useVentureStore } from '@/lib/store';
 import { apiClient } from '@/lib/api';
 
@@ -14,9 +14,25 @@ export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
+  const projName = activeProject?.name || startupState.project.name || 'Your Startup';
   const deck = startupState.investor_deck;
-  const slides = deck.slides || [];
-  const currentSlide = slides[currentSlideIndex] || { slide_number: 1, title: "Cover Slide", content: "Executive Startup Pitch" };
+
+  const DEFAULT_10_SLIDES = [
+    { slide_number: 1, title: "1. Cover", content: `${projName} — Executive Institutional Pitch Deck` },
+    { slide_number: 2, title: "2. Problem", content: startupState.project.problem_statement || "Founders spend months manually drafting business plans, market research, and financial models." },
+    { slide_number: 3, title: "3. Solution", content: startupState.project.solution_overview || "Autonomous LangGraph AI Engine executing real-time strategic updates across workspace modules." },
+    { slide_number: 4, title: "4. Market Opportunity", content: `Target Market: ${startupState.project.target_market || 'Global & Indian Enterprise SaaS'}. TAM: ₹12,500 Cr | SAM: ₹2,400 Cr | SOM: ₹350 Cr.` },
+    { slide_number: 5, title: "5. Business Model", content: `Model: ${startupState.project.business_model || 'SaaS Subscription'}. Target Pricing: ${startupState.marketing_strategy.pricing_inr || '₹1,499/month per workspace'}.` },
+    { slide_number: 6, title: "6. Product", content: "Unified AI Co-Founder system with 512-token vector RAG ingestion, interactive financial curves, and LangSmith tracing." },
+    { slide_number: 7, title: "7. Go-To-Market", content: "Generative Engine Optimisation (GEO), LinkedIn B2B founder DMs, Product Hunt launch, and viral teardown posts." },
+    { slide_number: 8, title: "8. Financials", content: `Burn Rate: ₹2.5 Lakh/mo | Runway: 18 Months | Year 1 ARR: ₹25 Lakhs growing to ₹3.5 Cr in Year 3.` },
+    { slide_number: 9, title: "9. Roadmap", content: "Month 1: Problem Validation → Month 2: AI MVP Engine → Month 4: Beta Launch & Pilot Onboarding." },
+    { slide_number: 10, title: "10. Investment Ask", content: `Seeking ${startupState.financials.seed_ask_inr || startupState.project.funding_goal || '₹1.0 Crore'} Seed Round for engineering expansion & distribution.` }
+  ];
+
+  const rawSlides = deck?.slides;
+  const slides = (rawSlides && Array.isArray(rawSlides) && rawSlides.length > 0) ? rawSlides : DEFAULT_10_SLIDES;
+  const currentSlide = slides[currentSlideIndex] || slides[0];
 
   const handleExportDeck = async (ext: 'pptx' | 'pdf') => {
     const fileName = `PitchDeck.${ext}`;
@@ -33,7 +49,7 @@ export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId }) => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      let textContent = `VENTUREPILOT AI PITCH DECK EXPORT (${ext.toUpperCase()})\nProject: ${startupState.project.name}\n\n`;
+      let textContent = `VENTUREPILOT AI PITCH DECK EXPORT (${ext.toUpperCase()})\nProject: ${projName}\n\n`;
       slides.forEach((s) => {
         textContent += `Slide ${s.slide_number}: ${s.title}\n${s.content}\n-----------------------------------\n`;
       });
@@ -86,23 +102,23 @@ export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId }) => {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
         <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
           <div className="text-[10px] uppercase font-bold text-[#64748B]">Overall Score</div>
-          <div className="text-lg font-extrabold text-[#5B5CEB]">{deck.overall_score || 89}/100</div>
+          <div className="text-lg font-extrabold text-[#5B5CEB]">{deck?.overall_score || 89}/100</div>
         </div>
         <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
           <div className="text-[10px] uppercase font-bold text-[#64748B]">Team & Traction</div>
-          <div className="text-lg font-extrabold text-[#26C281]">{deck.team_score || 90}%</div>
+          <div className="text-lg font-extrabold text-[#26C281]">{deck?.team_score || 90}%</div>
         </div>
         <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
           <div className="text-[10px] uppercase font-bold text-[#64748B]">Market (₹ TAM)</div>
-          <div className="text-lg font-extrabold text-[#00C6AE]">{deck.market_score || 92}%</div>
+          <div className="text-lg font-extrabold text-[#00C6AE]">{deck?.market_score || 92}%</div>
         </div>
         <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
           <div className="text-[10px] uppercase font-bold text-[#64748B]">Product Moat</div>
-          <div className="text-lg font-extrabold text-[#8C52FF]">{deck.product_score || 85}%</div>
+          <div className="text-lg font-extrabold text-[#8C52FF]">{deck?.product_score || 85}%</div>
         </div>
         <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
           <div className="text-[10px] uppercase font-bold text-[#64748B]">Financial Model</div>
-          <div className="text-lg font-extrabold text-[#26C281]">{deck.financial_score || 88}%</div>
+          <div className="text-lg font-extrabold text-[#26C281]">{deck?.financial_score || 88}%</div>
         </div>
       </div>
 
@@ -126,7 +142,7 @@ export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId }) => {
               }`}
             >
               <div className="truncate pr-2">{s.title}</div>
-              <span className="text-[10px] opacity-75 font-mono">#0{idx + 1}</span>
+              <span className="text-[10px] opacity-75 font-mono">#{String(idx + 1).padStart(2, '0')}</span>
             </button>
           ))}
         </div>
@@ -137,13 +153,13 @@ export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId }) => {
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full bg-[#5B5CEB] flex items-center justify-center text-[8px] font-bold text-white">
-                  {currentSlide.slide_number}
+                <span className="w-4 h-4 rounded-full bg-[#5B5CEB] flex items-center justify-center text-[9px] font-bold text-white font-mono">
+                  {currentSlideIndex + 1}
                 </span>
                 <h3 className="text-xl font-extrabold text-[#0F172A]">{currentSlide.title}</h3>
               </div>
               <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-indigo-50 text-[#5B5CEB] border border-indigo-200">
-                {activeProject?.name || 'Your Startup'} Pitch Deck
+                {projName} Pitch Deck
               </span>
             </div>
 

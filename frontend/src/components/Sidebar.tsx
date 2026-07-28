@@ -27,7 +27,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', onTabC
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'text-[#5B5CEB]' },
     { id: 'business_plan', label: 'Business Plan', icon: FileText, color: 'text-[#8C52FF]' },
     { id: 'market_research', label: 'Market Research (RAG)', icon: Compass, color: 'text-[#00C6AE]' },
-    { id: 'competitor_analysis', label: 'Competitor Analysis', icon: Target, color: 'text-[#FF6A3D]' },
     { id: 'technical_architecture', label: 'Technical Architecture', icon: Cpu, color: 'text-[#5B5CEB]' },
     { id: 'financial_model', label: 'Financial Model', icon: DollarSign, color: 'text-[#26C281]' },
     { id: 'product_roadmap', label: 'Product Roadmap', icon: Map, color: 'text-[#FFB648]' },
