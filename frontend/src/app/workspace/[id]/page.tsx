@@ -40,65 +40,121 @@ export default function WorkspacePage() {
   useEffect(() => {
     const validateAccessAndLoad = async () => {
       setCheckingAuth(true);
+      console.log("[Workspace Page Loaded] Target Project ID:", projectId);
       try {
-        const { data } = await supabase.auth.getSession();
-        
-        // 1. Strict Auth Guard: Redirect unauthenticated users
-        if (!data.session?.user) {
+        const { data: authData, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !authData?.user) {
+          console.error("[Workspace Auth Failed] User not logged in:", authErr);
           router.push('/login');
           return;
         }
 
-        const authUser = data.session.user;
+        const authUser = authData.user;
+        console.log("[Workspace User Verified] Authenticated User ID:", authUser.id);
+
         if (!user) {
           setUser({
             id: authUser.id,
-            email: authUser.email || 'founder@venturepilot.ai',
+            email: authUser.email || 'you@example.com',
             full_name: authUser.user_metadata?.full_name || 'Founder',
             role: 'founder',
             company: authUser.user_metadata?.company || 'My Venture'
           });
         }
 
-        // 2. Strict Workspace Isolation Guard: Check if project belongs to this user
-        let currentProj = projects.find((p) => p.id === projectId) || (activeProject?.id === projectId ? activeProject : null);
-
-        // If project not loaded or refreshed, fetch full state from API
         if (projectId) {
-          try {
-            const res = await apiClient.get(`/projects/${projectId}`, {
-              headers: { Authorization: `Bearer demo-jwt-${authUser.id}` }
-            });
-            if (res.data) {
-              const fullState = res.data;
-              const fetched = fullState.project || fullState;
-              // Enforce owner_id check
-              if (fetched.owner_id && fetched.owner_id !== authUser.id) {
-                router.push('/dashboard');
-                return;
+          // 1. Fetch project record directly from Supabase
+          console.log("[Workspace Query Started] Querying Supabase projects for ID:", projectId);
+          const { data: dbProj, error: dbProjErr } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', projectId)
+            .maybeSingle();
+
+          console.log("[Workspace Query Result] Supabase project row:", { dbProj, dbProjErr });
+
+          let fetchedProj = dbProj;
+
+          if (dbProjErr || !dbProj) {
+            try {
+              const apiRes = await apiClient.get(`/projects/${projectId}`, {
+                headers: { Authorization: `Bearer demo-jwt-${authUser.id}` }
+              });
+              if (apiRes.data) {
+                fetchedProj = apiRes.data.project || apiRes.data;
               }
-              currentProj = fetched;
-              setActiveProject(fetched);
-              if (fullState.business_plan) {
-                useVentureStore.getState().setStartupState(fullState);
-              }
-            }
-          } catch (e) {
-            if (!activeProject) {
-              router.push('/dashboard');
-              return;
-            }
+            } catch (e) {}
           }
-        }
 
-        if (currentProj && currentProj.owner_id && currentProj.owner_id !== authUser.id) {
-          // Unauthorized workspace access attempt -> Redirect to dashboard
-          router.push('/dashboard');
-          return;
-        }
+          if (!fetchedProj) {
+            console.error("[Workspace Project Not Found] No project found for ID:", projectId);
+            alert(`Project '${projectId}' was not found in database.`);
+            router.push('/dashboard');
+            return;
+          }
 
-        setAiResult(currentProj);
-      } catch (err) {
+          // Enforce ownership check
+          if (fetchedProj.owner_id && fetchedProj.owner_id !== authUser.id) {
+            console.error("[Workspace Access Denied] User does not own project:", authUser.id);
+            alert("Unauthorized workspace access.");
+            router.push('/dashboard');
+            return;
+          }
+
+          console.log("[Active Project Loaded] Project confirmed:", fetchedProj.name);
+          setActiveProject(fetchedProj);
+
+          // 2. Fetch all dependent artifacts in parallel from Supabase
+          console.log("[Workspace Data Fetched] Querying artifacts for:", projectId);
+          const [
+            { data: bp },
+            { data: mr },
+            { data: ca },
+            { data: ta },
+            { data: fm },
+            { data: pr },
+            { data: ms },
+            { data: id },
+            { data: docs },
+            { data: ev },
+            { data: audit }
+          ] = await Promise.all([
+            supabase.from('business_plans').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('market_research').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('competitor_analysis').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('technical_architecture').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('financial_models').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('product_roadmaps').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('marketing_strategies').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('investor_decks').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('documents').select('*').eq('project_id', projectId),
+            supabase.from('evaluations').select('*').eq('project_id', projectId).maybeSingle(),
+            supabase.from('audit_logs').select('*').eq('project_id', projectId).order('timestamp', { ascending: false })
+          ]);
+
+          const currentState = useVentureStore.getState().startupState;
+          useVentureStore.getState().setStartupState({
+            ...currentState,
+            project: fetchedProj,
+            business_plan: bp ? { ...currentState.business_plan, ...bp } : currentState.business_plan,
+            market_research: mr ? { ...currentState.market_research, ...mr } : currentState.market_research,
+            competitor_analysis: ca ? { ...currentState.competitor_analysis, ...ca } : currentState.competitor_analysis,
+            technical_architecture: ta ? { ...currentState.technical_architecture, ...ta } : currentState.technical_architecture,
+            financials: fm ? { ...currentState.financials, ...fm } : currentState.financials,
+            product_roadmap: pr ? { ...currentState.product_roadmap, ...pr } : currentState.product_roadmap,
+            marketing_strategy: ms ? { ...currentState.marketing_strategy, ...ms } : currentState.marketing_strategy,
+            investor_deck: id ? { ...currentState.investor_deck, ...id } : currentState.investor_deck,
+            documents: docs || currentState.documents,
+            evaluation: ev ? { ...currentState.evaluation, ...ev } : currentState.evaluation,
+            audit_trail: audit || currentState.audit_trail
+          });
+
+          setAiResult(fetchedProj);
+          console.log("[Navigation Completed] Workspace successfully rehydrated and active.");
+        }
+      } catch (err: any) {
+        console.error("[Workspace Load Exception] Stack trace:", err);
+        alert(`Failed to load workspace: ${err?.message || 'Unknown error'}`);
         router.push('/dashboard');
       } finally {
         setCheckingAuth(false);
@@ -106,7 +162,7 @@ export default function WorkspacePage() {
     };
 
     validateAccessAndLoad();
-  }, [projectId, router, user, setUser, projects, activeProject, setActiveProject]);
+  }, [projectId, router, setUser, setActiveProject]);
 
   if (checkingAuth) {
     return (

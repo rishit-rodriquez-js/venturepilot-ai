@@ -376,9 +376,72 @@ export default function DashboardPage() {
     router.push(`/workspace/${projectUuid}`);
   };
 
-  const handleResumeProject = (proj: Project) => {
-    setActiveProject(proj);
-    router.push(`/workspace/${proj.id}`);
+  const handleResumeProject = async (proj: Project) => {
+    console.log("[Resume Button Clicked] Project ID selected:", proj?.id);
+    if (!proj || !proj.id) {
+      console.error("[Resume Startup Error] Selected project is invalid:", proj);
+      alert("Selected startup project was not found.");
+      return;
+    }
+
+    try {
+      console.log("[Active Project Loaded] Setting active project in Zustand store:", proj.name);
+      setActiveProject(proj);
+
+      // 1. Fetch complete project workspace artifacts from Supabase DB in parallel
+      console.log("[Workspace Data Fetched] Querying Supabase artifacts for project_id:", proj.id);
+      const [
+        { data: bp },
+        { data: mr },
+        { data: ca },
+        { data: ta },
+        { data: fm },
+        { data: pr },
+        { data: ms },
+        { data: id },
+        { data: docs },
+        { data: ev },
+        { data: audit }
+      ] = await Promise.all([
+        supabase.from('business_plans').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('market_research').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('competitor_analysis').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('technical_architecture').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('financial_models').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('product_roadmaps').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('marketing_strategies').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('investor_decks').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('documents').select('*').eq('project_id', proj.id),
+        supabase.from('evaluations').select('*').eq('project_id', proj.id).maybeSingle(),
+        supabase.from('audit_logs').select('*').eq('project_id', proj.id).order('timestamp', { ascending: false })
+      ]);
+
+      console.log("[Workspace Data Fetched] Successfully fetched artifact context for:", proj.id);
+
+      // 2. Rehydrate Zustand state with fetched workspace artifacts
+      const currentState = useVentureStore.getState().startupState;
+      useVentureStore.getState().setStartupState({
+        ...currentState,
+        project: proj,
+        business_plan: bp ? { ...currentState.business_plan, ...bp } : currentState.business_plan,
+        market_research: mr ? { ...currentState.market_research, ...mr } : currentState.market_research,
+        competitor_analysis: ca ? { ...currentState.competitor_analysis, ...ca } : currentState.competitor_analysis,
+        technical_architecture: ta ? { ...currentState.technical_architecture, ...ta } : currentState.technical_architecture,
+        financials: fm ? { ...currentState.financials, ...fm } : currentState.financials,
+        product_roadmap: pr ? { ...currentState.product_roadmap, ...pr } : currentState.product_roadmap,
+        marketing_strategy: ms ? { ...currentState.marketing_strategy, ...ms } : currentState.marketing_strategy,
+        investor_deck: id ? { ...currentState.investor_deck, ...id } : currentState.investor_deck,
+        documents: docs || currentState.documents,
+        evaluation: ev ? { ...currentState.evaluation, ...ev } : currentState.evaluation,
+        audit_trail: audit || currentState.audit_trail
+      });
+
+      console.log("[Navigation Completed] Navigating cleanly via router.push to /workspace/" + proj.id);
+      router.push(`/workspace/${proj.id}`);
+    } catch (err: any) {
+      console.error("[Resume Startup Exception] Full stack trace:", err);
+      alert(`Failed to load project workspace: ${err?.message || 'Unknown error'}`);
+    }
   };
 
   if (authLoading) {
