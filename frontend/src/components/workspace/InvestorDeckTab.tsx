@@ -10,7 +10,7 @@ interface DeckProps {
 }
 
 export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId }) => {
-  const { startupState } = useVentureStore();
+  const { startupState, activeProject } = useVentureStore();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
