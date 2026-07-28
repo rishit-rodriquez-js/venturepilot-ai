@@ -10,14 +10,14 @@ version_snapshots: List[Dict[str, Any]] = [
         "id": "ver-101",
         "version_number": 1,
         "snapshot_label": "Initial Concept & Problem Hypothesis",
-        "created_by": "founder@venturepilot.ai",
+        "created_by": "you@example.com",
         "timestamp": datetime.utcnow().isoformat()
     },
     {
         "id": "ver-102",
         "version_number": 2,
         "snapshot_label": "Validated Lean Canvas & Technical Architecture v1",
-        "created_by": "founder@venturepilot.ai",
+        "created_by": "you@example.com",
         "timestamp": datetime.utcnow().isoformat()
     }
 ]

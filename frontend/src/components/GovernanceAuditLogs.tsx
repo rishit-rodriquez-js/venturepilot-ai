@@ -5,15 +5,15 @@ import { Settings, ShieldCheck, History, Plus, RotateCcw, CheckCircle2 } from 'l
 
 export const GovernanceAuditLogs: React.FC = () => {
   const [snapshots, setSnapshots] = useState([
-    { id: 'ver-101', version: 1, label: 'Initial Concept & Problem Hypothesis', author: 'founder@venturepilot.ai', date: '2026-07-28 09:30' },
-    { id: 'ver-102', version: 2, label: 'Validated Lean Canvas & Technical Architecture v1', author: 'founder@venturepilot.ai', date: '2026-07-28 11:00' }
+    { id: 'ver-101', version: 1, label: 'Initial Concept & Problem Hypothesis', author: 'you@example.com', date: '2026-07-28 09:30' },
+    { id: 'ver-102', version: 2, label: 'Validated Lean Canvas & Technical Architecture v1', author: 'you@example.com', date: '2026-07-28 11:00' }
   ]);
 
   const auditEvents = [
-    { id: 'audit-1', action: 'PROJECT_CREATE', user: 'founder@venturepilot.ai', detail: 'Created FinPulse AI project workspace', time: '2 hours ago' },
-    { id: 'audit-2', action: 'AI_WORKFLOW_RUN', user: 'founder@venturepilot.ai', detail: 'Triggered LangGraph Multi-Agent Lean Canvas synthesis', time: '1 hour ago' },
-    { id: 'audit-3', action: 'AI_WORKFLOW_RUN', user: 'founder@venturepilot.ai', detail: 'Generated Technical Architecture & Financial Model', time: '25 mins ago' },
-    { id: 'audit-4', action: 'VERSION_SNAPSHOT', user: 'founder@venturepilot.ai', detail: 'Saved governance version snapshot #2', time: '10 mins ago' }
+    { id: 'audit-1', action: 'PROJECT_CREATE', user: 'you@example.com', detail: 'Created Selected Startup project workspace', time: '2 hours ago' },
+    { id: 'audit-2', action: 'AI_WORKFLOW_RUN', user: 'you@example.com', detail: 'Triggered LangGraph Multi-Agent Lean Canvas synthesis', time: '1 hour ago' },
+    { id: 'audit-3', action: 'AI_WORKFLOW_RUN', user: 'you@example.com', detail: 'Generated Technical Architecture & Financial Model', time: '25 mins ago' },
+    { id: 'audit-4', action: 'VERSION_SNAPSHOT', user: 'you@example.com', detail: 'Saved governance version snapshot #2', time: '10 mins ago' }
   ];
 
   const handleNewSnapshot = () => {
@@ -24,7 +24,7 @@ export const GovernanceAuditLogs: React.FC = () => {
         id: `ver-10${nextVer}`,
         version: nextVer,
         label: `Enterprise Governance Snapshot v${nextVer}`,
-        author: 'founder@venturepilot.ai',
+        author: 'you@example.com',
         date: new Date().toISOString().replace('T', ' ').substring(0, 16)
       }
     ]);

@@ -17,7 +17,7 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
         # Development fallback / mock user if unauthenticated headers in dev mode
         return UserContext(
             user_id="00000000-0000-0000-0000-000000000001",
-            email="founder@venturepilot.ai",
+            email="you@example.com",
             role="founder"
         )
     
@@ -32,7 +32,7 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
         # Fallback to mock payload for demo robustness if token signature differs
         return UserContext(
             user_id="00000000-0000-0000-0000-000000000001",
-            email="founder@venturepilot.ai",
+            email="you@example.com",
             role="founder"
         )
 

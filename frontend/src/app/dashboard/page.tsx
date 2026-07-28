@@ -1,221 +1,707 @@
 "use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar } from '@/components/Sidebar';
-import { useVentureStore } from '@/lib/store';
-import { Plus, Rocket, Award, Layers, ArrowRight, Activity, Trash2 } from 'lucide-react';
+import { useVentureStore, Project } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
+import { apiClient } from '@/lib/api';
+import { Plus, Rocket, Award, ArrowRight, Play, Upload, FileText, BarChart2, ShieldCheck, Cpu, Database, Compass, Layers, DollarSign, Globe, CheckCircle2, RefreshCw, X } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { projects, addProject, user } = useVentureStore();
-  const [showModal, setShowModal] = useState(false);
+  const { projects, setProjects, addProject, user, setUser, setActiveProject, initNewProjectState } = useVentureStore();
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showWizardModal, setShowWizardModal] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [loading, setLoading] = useState(false);
 
+  // Wizard Form Fields
   const [name, setName] = useState('');
-  const [industry, setIndustry] = useState('');
   const [problem, setProblem] = useState('');
   const [solution, setSolution] = useState('');
 
-  const handleCreateProject = (e: React.FormEvent) => {
+  // Step 2: Industry State
+  const [industry, setIndustry] = useState('Enterprise SaaS');
+  const [isCustomIndustry, setIsCustomIndustry] = useState(false);
+  const [customIndustry, setCustomIndustry] = useState('');
+  const [industrySearch, setIndustrySearch] = useState('');
+
+  // Step 3: Country State
+  const [country, setCountry] = useState('India (₹ INR - DPIIT Registered)');
+
+  // Step 4: Funding State
+  const [fundingAmount, setFundingAmount] = useState('₹2.0 Crore');
+  const [isCustomFunding, setIsCustomFunding] = useState(false);
+  const [customFundingAmount, setCustomFundingAmount] = useState('');
+  const [fundingStage, setFundingStage] = useState('Seed');
+  const [isCustomStage, setIsCustomStage] = useState(false);
+  const [customStage, setCustomStage] = useState('');
+  const [fundingPurposes, setFundingPurposes] = useState<string[]>(['Product Development', 'Hiring']);
+
+  // Step 5: Business Model State
+  const [businessModel, setBusinessModel] = useState('SaaS Subscription + Marketplace');
+
+  const PREDEFINED_INDUSTRIES = [
+    'AI & Machine Learning', 'SaaS', 'Fintech', 'Healthtech', 'Medtech', 'Biotech',
+    'Agritech', 'Edtech', 'ClimateTech', 'Clean Energy', 'Cybersecurity', 'Robotics',
+    'Manufacturing', 'IoT', 'Enterprise Software', 'E-commerce', 'Logistics', 'Supply Chain',
+    'Mobility', 'Automotive', 'Aerospace', 'SpaceTech', 'Construction', 'Real Estate',
+    'PropTech', 'HRTech', 'LegalTech', 'InsurTech', 'TravelTech', 'FoodTech',
+    'Hospitality', 'Gaming', 'Creator Economy', 'Media', 'Entertainment', 'Blockchain / Web3', 'Consumer Apps'
+  ];
+
+  const PREDEFINED_FUNDING_AMOUNTS = [
+    'Bootstrapped', '₹10 Lakhs', '₹25 Lakhs', '₹50 Lakhs',
+    '₹1 Crore', '₹2.0 Crore', '₹5.0 Crore', '₹10 Crore', '₹25 Crore'
+  ];
+
+  const FUNDING_STAGES = [
+    'Bootstrapped', 'Friends & Family', 'Grant', 'Incubator', 'Accelerator',
+    'Angel Round', 'Pre-Seed', 'Seed', 'Bridge Round', 'Series A',
+    'Series B', 'Series C+', 'Strategic Investment', 'Other'
+  ];
+
+  const FUNDING_PURPOSES = [
+    'Product Development', 'Hiring', 'Marketing', 'Go-To-Market',
+    'Manufacturing', 'Expansion', 'R&D', 'Working Capital', 'Infrastructure', 'International Expansion'
+  ];
+
+  useEffect(() => {
+    const checkAuthAndLoadProjects = async () => {
+      setAuthLoading(true);
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        // Strict protection: If no session, redirect to login
+        if (!data.session?.user) {
+          setUser(null);
+          setProjects([]);
+          setActiveProject(null);
+          router.push('/login');
+          return;
+        }
+
+        const authUser = data.session.user;
+        const currentProfile = {
+          id: authUser.id,
+          email: authUser.email || 'you@example.com',
+          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Founder',
+          role: 'founder' as const,
+          company: authUser.user_metadata?.company || 'My Startup'
+        };
+
+        setUser(currentProfile);
+
+        // Fetch user-isolated projects for this owner_id
+        try {
+          const res = await apiClient.get('/projects', {
+            headers: { Authorization: `Bearer demo-jwt-${authUser.id}` }
+          });
+          if (res.data && Array.isArray(res.data)) {
+            const userProjs = res.data
+              .map((p: any) => p.project || p)
+              .filter((p: Project) => !p.owner_id || p.owner_id === authUser.id);
+            setProjects(userProjs);
+          } else {
+            setProjects([]);
+          }
+        } catch (err) {
+          setProjects([]);
+        }
+      } catch (err) {
+        setUser(null);
+        setProjects([]);
+        router.push('/login');
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkAuthAndLoadProjects();
+  }, [router, setUser, setProjects, setActiveProject]);
+
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newId = `proj-${Date.now().toString().slice(-4)}`;
-    const newProj = {
-      id: newId,
-      name: name || "New AI Venture",
-      tagline: "Autonomous Agent Business Model",
-      industry: industry || "Enterprise AI",
-      problem_statement: problem || "High operational latency",
-      solution_overview: solution || "Autonomous AI agent workflows",
-      stage: "validation" as const,
-      readiness_score: 82,
+    if (!user) return;
+
+    setLoading(true);
+
+    const projName = name.trim() || "My New Venture";
+    const projId = `proj-${Date.now().toString().slice(-6)}`;
+
+    const effectiveIndustry = isCustomIndustry ? (customIndustry.trim() || 'Custom Industry') : industry;
+    const effectiveFundingAmt = isCustomFunding ? (customFundingAmount.trim() || '₹1.0 Crore') : fundingAmount;
+    const effectiveFundingStage = isCustomStage ? (customStage.trim() || 'Seed') : fundingStage;
+    const effectiveFundingGoal = `${effectiveFundingAmt} (${effectiveFundingStage})`;
+
+    const newProj: Project = {
+      id: projId,
+      owner_id: user.id,
+      name: projName,
+      tagline: `${effectiveIndustry} Venture Powered by Autonomous AI`,
+      industry: effectiveIndustry,
+      target_market: country.includes('India') ? 'Indian Market' : 'Global Market',
+      problem_statement: problem || "Core industry friction points",
+      solution_overview: solution || "Autonomous LangGraph AI solution",
+      stage: "idea",
+      readiness_score: 75,
+      status: "Running",
       created_at: new Date().toISOString()
     };
-    addProject(newProj);
-    setShowModal(false);
-    setName('');
-    setIndustry('');
-    setProblem('');
-    setSolution('');
-    router.push(`/workspace/${newId}`);
+
+    let targetId = projId;
+    let createdProj: Project = newProj;
+
+    try {
+      const res = await apiClient.post('/projects', {
+        name: projName,
+        industry: effectiveIndustry,
+        problem_statement: problem || "Core industry friction points",
+        solution_overview: solution || "Autonomous AI platform solution",
+        funding_goal: effectiveFundingGoal,
+        business_model: businessModel
+      }, {
+        headers: { Authorization: `Bearer demo-jwt-${user.id}` }
+      });
+      
+      if (res.data?.project) {
+        createdProj = { ...res.data.project, owner_id: user.id };
+        targetId = createdProj.id;
+      }
+      addProject(createdProj);
+      setActiveProject(createdProj);
+    } catch (err) {
+      addProject(newProj);
+      setActiveProject(newProj);
+    }
+
+    // Immediately sync Dashboard list from database
+    try {
+      const listRes = await apiClient.get('/projects', {
+        headers: { Authorization: `Bearer demo-jwt-${user.id}` }
+      });
+      if (listRes.data && Array.isArray(listRes.data)) {
+        const userProjs = listRes.data
+          .map((p: any) => p.project || p)
+          .filter((p: Project) => !p.owner_id || p.owner_id === user.id);
+        setProjects(userProjs);
+      }
+    } catch (e) {}
+
+    // Initialize unified project state for this venture
+    initNewProjectState(createdProj, problem, solution, effectiveIndustry, country, effectiveFundingGoal, businessModel);
+
+    setShowWizardModal(false);
+    setWizardStep(1);
+    setLoading(false);
+    router.push(`/workspace/${targetId}`);
   };
 
+  const handleResumeProject = (proj: Project) => {
+    setActiveProject(proj);
+    router.push(`/workspace/${proj.id}`);
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#F7F8FC] text-[#0F172A] flex items-center justify-center bg-executive-mesh">
+        <div className="p-8 rounded-[28px] bg-white border border-slate-200 shadow-xl space-y-4 text-center max-w-sm">
+          <div className="w-12 h-12 rounded-2xl bg-[#5B5CEB] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#5B5CEB]/25">
+            <RefreshCw className="w-6 h-6 animate-spin" />
+          </div>
+          <div className="space-y-1">
+            <div className="text-base font-extrabold text-[#0F172A]">Hydrating Founder Session...</div>
+            <p className="text-xs text-[#64748B]">Verifying user isolation and loading your project workspace.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#070b12] text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#F7F8FC] text-[#0F172A] flex flex-col bg-executive-mesh relative">
       <Navbar />
 
       <div className="flex flex-1">
         <Sidebar />
 
         <main className="flex-1 p-8 space-y-8 overflow-y-auto">
-          {/* Header & Create CTA */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-                <span>Projects Portfolio Dashboard</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-semibold">
-                  {projects.length} Active Startups
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white text-[#5B5CEB] border border-slate-200 shadow-sm">
+                  User Isolated Workspace
                 </span>
-              </h1>
-              <p className="text-xs text-slate-400 mt-1">
-                Manage your enterprise startup portfolio, monitor investor readiness, and trigger AI agent workflows.
-              </p>
+                <span className="text-[10px] font-mono text-[#64748B]">{user?.email}</span>
+              </div>
+              <h1 className="text-2xl font-extrabold text-[#0F172A]">Startup Projects Command Hub</h1>
+              <p className="text-xs text-[#64748B] mt-1">Isolated multi-agent startup workspaces for {user?.full_name || 'Founder'}.</p>
             </div>
 
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 flex items-center gap-2 transition"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create New Startup</span>
-            </button>
-          </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => { setShowWizardModal(true); setWizardStep(1); }}
+                className="px-5 py-3 rounded-2xl bg-[#5B5CEB] hover:bg-[#4a4bd9] text-white font-extrabold text-xs shadow-xl shadow-[#5B5CEB]/25 flex items-center gap-1.5 transition transform active:scale-[0.99]"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Startup</span>
+              </button>
 
-          {/* Metrics Summary Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
-              <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Portfolio Avg Readiness Score</div>
-              <div className="text-3xl font-extrabold text-indigo-300">89.5 / 100</div>
-              <div className="text-[11px] text-emerald-400 mt-2 font-medium">Institutional Grade Readiness</div>
-            </div>
-
-            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
-              <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Total Vector Memory Context</div>
-              <div className="text-3xl font-extrabold text-cyan-300">1,420 Chunks</div>
-              <div className="text-[11px] text-slate-500 mt-2">Supabase pgvector (1536d)</div>
-            </div>
-
-            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
-              <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">LangGraph Agent Runs</div>
-              <div className="text-3xl font-extrabold text-purple-300">48 Workflows</div>
-              <div className="text-[11px] text-emerald-400 mt-2 font-medium">100% LangSmith Traced</div>
+              {projects.length > 0 && (
+                <button
+                  onClick={() => handleResumeProject(projects[0])}
+                  className="px-4 py-3 rounded-2xl bg-white hover:bg-slate-50 text-[#00C6AE] border border-slate-200 font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  <span>Resume Active Venture</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Startup Projects Grid */}
+          {/* User Projects List (Per-User Isolation) */}
           <div className="space-y-4">
-            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Your Startup Ventures</h2>
+            <h2 className="text-base font-extrabold text-[#0F172A] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#5B5CEB]" />
+              <span>Your Active Ventures ({projects.length})</span>
+            </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {projects.map((proj) => (
-                <div key={proj.id} className="p-6 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md space-y-4 hover:border-slate-700 transition flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+            {projects.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-[24px] border border-slate-200 space-y-4">
+                <Rocket className="w-12 h-12 text-[#5B5CEB] mx-auto opacity-80" />
+                <div className="space-y-1">
+                  <h3 className="text-lg font-extrabold text-[#0F172A]">No Startups Created Yet</h3>
+                  <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+                    Launch your first venture using our step-by-step Startup Wizard to generate complete business plans, financial models, and pitch decks.
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setShowWizardModal(true); setWizardStep(1); }}
+                  className="px-6 py-3 rounded-2xl bg-[#5B5CEB] text-white text-xs font-extrabold shadow-lg shadow-[#5B5CEB]/20 inline-flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Start Startup Wizard</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.map((proj) => (
+                  <div key={proj.id} className="glass-exec-card p-6 flex flex-col justify-between space-y-4 hover:border-[#5B5CEB]/40 transition">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-50 text-[#5B5CEB] border border-indigo-200">
                           {proj.industry}
                         </span>
-                        <h3 className="text-lg font-bold text-slate-100 mt-1">{proj.name}</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-[#26C281] border border-emerald-200">
+                          Score: {proj.readiness_score || 85}/100
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800">
-                        <Award className="w-3.5 h-3.5 text-indigo-400" />
-                        <span className="text-xs font-extrabold text-indigo-300">{proj.readiness_score} pts</span>
-                      </div>
+
+                      <h3 className="text-xl font-extrabold text-[#0F172A]">{proj.name}</h3>
+                      <p className="text-xs text-[#64748B] line-clamp-2">{proj.problem_statement}</p>
                     </div>
 
-                    <p className="text-xs text-slate-300 font-medium">{proj.tagline || proj.solution_overview}</p>
-                    <p className="text-xs text-slate-400 line-clamp-2">{proj.problem_statement}</p>
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] text-[#64748B] font-medium">Stage: <strong className="text-[#0F172A] capitalize">{proj.stage}</strong></span>
+                      <button
+                        onClick={() => handleResumeProject(proj)}
+                        className="px-4 py-2 rounded-xl bg-[#5B5CEB] text-white font-extrabold text-xs shadow-md shadow-[#5B5CEB]/20 flex items-center gap-1.5 hover:bg-[#4a4bd9] transition"
+                      >
+                        <span>Resume Startup</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500 font-mono">Stage: {proj.stage.toUpperCase()}</span>
-
-                    <Link
-                      href={`/workspace/${proj.id}`}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-semibold transition"
-                    >
-                      <span>Enter OS Workspace</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
+        </main>
+      </div>
 
-          {/* Creation Modal */}
-          {showModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-              <div className="w-full max-w-lg glass-card p-6 rounded-2xl border border-slate-800 space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                    <Rocket className="w-5 h-5 text-cyan-400" />
-                    <span>Create New Startup Project</span>
-                  </h3>
-                  <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-slate-300 text-xs">Close</button>
+      {/* FULLSCREEN VIEWPORT CENTERED STARTUP GENERATION WIZARD MODAL */}
+      {showWizardModal && (
+        <div className="fixed inset-0 z-50 m-0 p-4 bg-black/40 backdrop-blur-sm flex items-center justify-center overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-white p-8 rounded-[28px] shadow-2xl border border-slate-200 space-y-6 my-auto m-0">
+            
+            {/* Wizard Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#5B5CEB] text-white flex items-center justify-center font-bold text-xs">
+                  {wizardStep}/5
                 </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#0F172A]">Startup Generation Wizard</h3>
+                  <p className="text-[10px] text-[#64748B]">Create your new venture powered by autonomous AI agents.</p>
+                </div>
+              </div>
+              <button onClick={() => setShowWizardModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-                <form onSubmit={handleCreateProject} className="space-y-4">
+            {/* Step Progress Bar */}
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-[#5B5CEB] h-full transition-all duration-300" style={{ width: `${(wizardStep / 5) * 100}%` }} />
+            </div>
+
+            <form onSubmit={handleCreateProject} className="space-y-4">
+              {/* STEP 1: IDEA */}
+              {wizardStep === 1 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div className="font-extrabold text-sm text-[#0F172A]">Step 1: Idea & Core Friction</div>
+                  
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Startup Name</label>
+                    <label className="block text-xs font-bold text-[#64748B] mb-1">Startup Venture Name</label>
                     <input
                       type="text"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. FinPulse AI"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                      placeholder="e.g. NovaTech Labs"
+                      className="w-full bg-[#F7F8FC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B5CEB]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Industry Sector</label>
-                    <input
-                      type="text"
-                      required
-                      value={industry}
-                      onChange={(e) => setIndustry(e.target.value)}
-                      placeholder="e.g. FinTech / Enterprise SaaS"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Core Problem Statement</label>
+                    <label className="block text-xs font-bold text-[#64748B] mb-1">Problem Statement</label>
                     <textarea
                       required
                       rows={2}
                       value={problem}
                       onChange={(e) => setProblem(e.target.value)}
-                      placeholder="What friction or inefficiency are you solving?"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                      placeholder="Describe the primary problem your startup is solving."
+                      className="w-full bg-[#F7F8FC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B5CEB]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Solution Overview</label>
+                    <label className="block text-xs font-bold text-[#64748B] mb-1">Solution Overview</label>
                     <textarea
                       required
                       rows={2}
                       value={solution}
                       onChange={(e) => setSolution(e.target.value)}
-                      placeholder="How does your AI platform solve this?"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                      placeholder="Briefly describe how your solution solves the problem."
+                      className="w-full bg-[#F7F8FC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B5CEB]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: INDUSTRY */}
+              {wizardStep === 2 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <div className="font-extrabold text-sm text-[#0F172A]">Step 2: Industry Sector</div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Select a sector or search and define your custom domain.</p>
+                  </div>
+
+                  {/* Searchable Autocomplete Bar */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={industrySearch}
+                      onChange={(e) => setIndustrySearch(e.target.value)}
+                      placeholder="Search industries (e.g. Quantum Computing, ClimateTech, BioTech)..."
+                      className="w-full bg-[#F7F8FC] border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B5CEB]"
                     />
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  {/* Quick Select Grid */}
+                  <div className="max-h-48 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {PREDEFINED_INDUSTRIES
+                      .filter((ind) => ind.toLowerCase().includes(industrySearch.toLowerCase()))
+                      .map((ind) => (
+                        <button
+                          key={ind}
+                          type="button"
+                          onClick={() => {
+                            setIndustry(ind);
+                            setIsCustomIndustry(false);
+                          }}
+                          className={`p-2.5 rounded-xl text-left border text-xs font-bold transition flex items-center justify-between ${
+                            !isCustomIndustry && industry === ind
+                              ? 'bg-[#5B5CEB] text-white border-[#5B5CEB] shadow-md'
+                              : 'bg-[#F7F8FC] text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className="truncate">{ind}</span>
+                          {!isCustomIndustry && industry === ind && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
+                        </button>
+                      ))}
+
+                    {/* Custom Industry Card */}
                     <button
                       type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-4 py-2 rounded-lg bg-slate-900 text-slate-400 text-xs font-semibold hover:bg-slate-800"
+                      onClick={() => setIsCustomIndustry(true)}
+                      className={`p-2.5 rounded-xl text-left border text-xs font-bold transition flex items-center justify-between col-span-2 sm:col-span-3 ${
+                        isCustomIndustry
+                          ? 'bg-[#5B5CEB] text-white border-[#5B5CEB] shadow-md'
+                          : 'bg-indigo-50/70 text-[#5B5CEB] border-indigo-200 hover:border-indigo-300'
+                      }`}
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-600/20"
-                    >
-                      Launch AI Workflows
+                      <span>+ Other / Custom Industry</span>
+                      {isCustomIndustry && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
                     </button>
                   </div>
-                </form>
+
+                  {/* Custom Industry Input Field */}
+                  {isCustomIndustry && (
+                    <div className="pt-2 animate-in fade-in space-y-1">
+                      <label className="block text-xs font-bold text-[#64748B]">Industry Name (Required, max 50 chars)</label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={50}
+                        value={customIndustry}
+                        onChange={(e) => setCustomIndustry(e.target.value)}
+                        placeholder="e.g. FashionTech, MarineTech, SportsTech, Quantum Computing"
+                        className="w-full bg-[#F7F8FC] border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B5CEB]"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* STEP 3: COUNTRY & REGION */}
+              {wizardStep === 3 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div className="font-extrabold text-sm text-[#0F172A]">Step 3: Country & Ecosystem Context</div>
+                  <div className="space-y-2">
+                    {[
+                      'India (₹ INR - DPIIT Registered)',
+                      'United States ($ USD - Delaware C-Corp)',
+                      'Singapore ($ SGD - MAS Framework)',
+                      'United Kingdom (£ GBP - SEIS/EIS Scheme)'
+                    ].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setCountry(c)}
+                        className={`w-full p-3 rounded-2xl text-left border text-xs font-bold transition flex items-center justify-between ${
+                          country === c
+                            ? 'bg-[#5B5CEB] text-white border-[#5B5CEB] shadow-md'
+                            : 'bg-[#F7F8FC] text-slate-700 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <span>{c}</span>
+                        {country === c && <CheckCircle2 className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: FUNDING GOAL & STAGE */}
+              {wizardStep === 4 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <div className="font-extrabold text-sm text-[#0F172A]">Step 4: Funding Target & Stage</div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Define target capital raise, stage, and capital deployment purposes.</p>
+                  </div>
+
+                  {/* Funding Amount Quick Select */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#64748B]">Target Capital Raise</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {PREDEFINED_FUNDING_AMOUNTS.map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => {
+                            setFundingAmount(amt);
+                            setIsCustomFunding(false);
+                          }}
+                          className={`p-2.5 rounded-xl text-left border text-xs font-bold transition flex items-center justify-between ${
+                            !isCustomFunding && fundingAmount === amt
+                              ? 'bg-[#5B5CEB] text-white border-[#5B5CEB] shadow-md'
+                              : 'bg-[#F7F8FC] text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className="truncate">{amt}</span>
+                          {!isCustomFunding && fundingAmount === amt && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
+                        </button>
+                      ))}
+
+                      {/* Custom Amount Card */}
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomFunding(true)}
+                        className={`p-2.5 rounded-xl text-left border text-xs font-bold transition flex items-center justify-between col-span-3 ${
+                          isCustomFunding
+                            ? 'bg-[#5B5CEB] text-white border-[#5B5CEB] shadow-md'
+                            : 'bg-indigo-50/70 text-[#5B5CEB] border-indigo-200 hover:border-indigo-300'
+                        }`}
+                      >
+                        <span>+ Custom Amount</span>
+                        {isCustomFunding && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
+                      </button>
+                    </div>
+
+                    {isCustomFunding && (
+                      <div className="pt-1 animate-in fade-in space-y-1">
+                        <label className="block text-xs font-bold text-[#64748B]">Target Funding Amount</label>
+                        <input
+                          type="text"
+                          required
+                          value={customFundingAmount}
+                          onChange={(e) => setCustomFundingAmount(e.target.value)}
+                          placeholder="e.g. ₹3.5 Crore, ₹75 Lakhs, or $500,000"
+                          className="w-full bg-[#F7F8FC] border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B5CEB]"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Independent Funding Stage Selection */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="block text-xs font-bold text-[#64748B]">Funding Stage</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-32 overflow-y-auto pr-1">
+                      {FUNDING_STAGES.map((stg) => (
+                        <button
+                          key={stg}
+                          type="button"
+                          onClick={() => {
+                            if (stg === 'Other') {
+                              setIsCustomStage(true);
+                            } else {
+                              setFundingStage(stg);
+                              setIsCustomStage(false);
+                            }
+                          }}
+                          className={`p-2 rounded-xl text-left border text-xs font-bold transition flex items-center justify-between ${
+                            (stg === 'Other' ? isCustomStage : (!isCustomStage && fundingStage === stg))
+                              ? 'bg-[#5B5CEB] text-white border-[#5B5CEB] shadow-md'
+                              : 'bg-[#F7F8FC] text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className="truncate">{stg}</span>
+                          {(stg === 'Other' ? isCustomStage : (!isCustomStage && fundingStage === stg)) && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+
+                    {isCustomStage && (
+                      <div className="pt-1 animate-in fade-in">
+                        <input
+                          type="text"
+                          required
+                          value={customStage}
+                          onChange={(e) => setCustomStage(e.target.value)}
+                          placeholder="Specify custom stage (e.g. Growth Equity, Strategic Grant)"
+                          className="w-full bg-[#F7F8FC] border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B5CEB]"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Funding Purpose (Optional Multi-Select) */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="block text-xs font-bold text-[#64748B]">Capital Allocation & Purpose (Optional)</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FUNDING_PURPOSES.map((purp) => {
+                        const active = fundingPurposes.includes(purp);
+                        return (
+                          <button
+                            key={purp}
+                            type="button"
+                            onClick={() => {
+                              setFundingPurposes((prev) =>
+                                active ? prev.filter((p) => p !== purp) : [...prev, purp]
+                              );
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                              active
+                                ? 'bg-indigo-100 text-[#5B5CEB] border-indigo-300'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {active ? `✓ ${purp}` : `+ ${purp}`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 5: BUSINESS MODEL & GENERATE */}
+              {wizardStep === 5 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div className="font-extrabold text-sm text-[#0F172A]">Step 5: Business Model & Agent Dispatch</div>
+                  <div className="space-y-2">
+                    {[
+                      'SaaS Subscription + Marketplace',
+                      'B2B Enterprise Licensing',
+                      'Transactional Fee / Take Rate',
+                      'Hardware Edge + Software Bundle'
+                    ].map((bm) => (
+                      <button
+                        key={bm}
+                        type="button"
+                        onClick={() => setBusinessModel(bm)}
+                        className={`w-full p-3 rounded-2xl text-left border text-xs font-bold transition ${
+                          businessModel === bm
+                            ? 'bg-[#5B5CEB] text-white border-[#5B5CEB] shadow-md'
+                            : 'bg-[#F7F8FC] text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {bm}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-xs text-[#5B5CEB] space-y-1">
+                    <div className="font-bold">Ready to Dispatch LangGraph Swarm</div>
+                    <p className="text-[11px]">Will synthesize Business Plan, Financial Model, Pitch Deck, & Architecture Diagram for {user?.email}.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Wizard Controls */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={wizardStep === 1}
+                  onClick={() => setWizardStep((prev) => Math.max(1, prev - 1))}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 disabled:opacity-40"
+                >
+                  Back
+                </button>
+
+                {wizardStep < 5 ? (
+                  <button
+                    type="button"
+                    disabled={
+                      (wizardStep === 2 && isCustomIndustry && (!customIndustry.trim() || customIndustry.trim().length > 50)) ||
+                      (wizardStep === 4 && isCustomFunding && !customFundingAmount.trim()) ||
+                      (wizardStep === 4 && isCustomStage && !customStage.trim())
+                    }
+                    onClick={() => setWizardStep((prev) => Math.min(5, prev + 1))}
+                    className="px-6 py-2.5 rounded-xl bg-[#5B5CEB] hover:bg-[#4a4bd9] text-white text-xs font-bold shadow-lg shadow-[#5B5CEB]/20 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <span>Continue</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-6 py-2.5 rounded-xl bg-[#26C281] hover:bg-[#20ad73] text-white text-xs font-extrabold shadow-lg shadow-[#26C281]/20 flex items-center gap-2 disabled:opacity-60"
+                  >
+                    {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                    <span>{loading ? 'Orchestrating Agents...' : 'Generate & Open Workspace'}</span>
+                  </button>
+                )}
               </div>
-            </div>
-          )}
-        </main>
-      </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

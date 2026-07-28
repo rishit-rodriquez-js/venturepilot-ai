@@ -1,75 +1,77 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Compass, Layers, PieChart, ShieldAlert, Cpu, FileText, Settings } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Compass, 
+  Target, 
+  Cpu, 
+  DollarSign, 
+  Map, 
+  Megaphone, 
+  Presentation, 
+  Download, 
+  BarChart2, 
+  History, 
+  GitBranch 
+} from 'lucide-react';
 
 interface SidebarProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
-  const pathname = usePathname();
-  const isWorkspace = pathname.includes('/workspace');
-
-  const workspaceTabs = [
-    { id: 'cofounder', label: 'AI Co-Founder Hub', icon: Cpu },
-    { id: 'canvas', label: 'Lean & Business Canvas', icon: Layers },
-    { id: 'market', label: 'Market & Competitors', icon: Compass },
-    { id: 'tech', label: 'Technical Blueprint', icon: FileText },
-    { id: 'financials', label: 'Financial Forecasts', icon: PieChart },
-    { id: 'investor', label: 'Investor Scorecard', icon: ShieldAlert },
-    { id: 'governance', label: 'Governance & Audit', icon: Settings },
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', onTabChange }) => {
+  const menuItems = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'text-[#5B5CEB]' },
+    { id: 'business_plan', label: 'Business Plan', icon: FileText, color: 'text-[#8C52FF]' },
+    { id: 'market_research', label: 'Market Research (RAG)', icon: Compass, color: 'text-[#00C6AE]' },
+    { id: 'competitor_analysis', label: 'Competitor Analysis', icon: Target, color: 'text-[#FF6A3D]' },
+    { id: 'technical_architecture', label: 'Technical Architecture', icon: Cpu, color: 'text-[#5B5CEB]' },
+    { id: 'financial_model', label: 'Financial Model', icon: DollarSign, color: 'text-[#26C281]' },
+    { id: 'product_roadmap', label: 'Product Roadmap', icon: Map, color: 'text-[#FFB648]' },
+    { id: 'marketing_strategy', label: 'Marketing Strategy', icon: Megaphone, color: 'text-[#FF6A3D]' },
+    { id: 'investor_deck', label: 'Investor Deck', icon: Presentation, color: 'text-[#8C52FF]' },
+    { id: 'downloads', label: 'Downloads Bundle', icon: Download, color: 'text-[#26C281]' },
+    { id: 'evaluation', label: 'Evaluation & Traces', icon: BarChart2, color: 'text-[#5B5CEB]' },
+    { id: 'audit_trail', label: 'Audit Trail', icon: History, color: 'text-[#00C6AE]' },
+    { id: 'version_history', label: 'Version History', icon: GitBranch, color: 'text-[#8C52FF]' },
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-800 bg-slate-950/60 p-4 flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)]">
+    <aside className="w-64 p-4 bg-white/60 backdrop-blur-md border-r border-slate-200 flex flex-col justify-between hidden md:flex">
       <div className="space-y-6">
-        <div>
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">Navigation</div>
-          <nav className="space-y-1">
-            <Link
-              href="/dashboard"
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
-                pathname === '/dashboard' ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-800/40' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Projects Dashboard</span>
-            </Link>
-          </nav>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] px-3">
+          Startup Operating System
         </div>
 
-        {isWorkspace && onTabChange && (
-          <div>
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">Startup OS Modules</div>
-            <nav className="space-y-1">
-              {workspaceTabs.map((t) => {
-                const Icon = t.icon;
-                const isActive = activeTab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => onTabChange(t.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition text-left ${
-                      isActive ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{t.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        )}
+        <nav className="space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange && onTabChange(item.id)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition ${
+                  isActive
+                    ? 'bg-[#5B5CEB] text-white shadow-md shadow-[#5B5CEB]/25 font-bold'
+                    : 'text-[#64748B] hover:bg-[#F7F8FC] hover:text-[#0F172A]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.color}`} />
+                <span className="truncate">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      <div className="p-3 rounded-xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 text-xs">
-        <div className="text-slate-300 font-semibold mb-1">VenturePilot Enterprise</div>
-        <div className="text-slate-500 text-[11px]">PGVector RLS & LangSmith Active</div>
+      <div className="p-3.5 rounded-2xl bg-[#F7F8FC] border border-slate-200 space-y-1">
+        <div className="text-[10px] font-bold uppercase text-[#64748B]">System Memory</div>
+        <div className="text-xs font-bold text-[#0F172A]">Supabase pgvector</div>
+        <div className="text-[10px] text-[#26C281] font-semibold">Row Level Security Active</div>
       </div>
     </aside>
   );
