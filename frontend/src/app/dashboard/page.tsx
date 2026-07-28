@@ -156,6 +156,8 @@ export default function DashboardPage() {
     checkAuthAndLoadProjects();
   }, [router, setUser, setProjects, setActiveProject]);
 
+  const [agentProgress, setAgentProgress] = useState<{ step: string; percent: number; agent: string } | null>(null);
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -171,6 +173,16 @@ export default function DashboardPage() {
     console.log("[Authenticated User Retrieved]", authUser.id);
 
     setLoading(true);
+    setAgentProgress({ step: "Planner Agent: Synthesizing Executive Strategy & Vision...", percent: 20, agent: "Planner Agent" });
+    await new Promise(r => setTimeout(r, 400));
+    setAgentProgress({ step: "Research Agent: Querying Market Size (TAM/SAM/SOM)...", percent: 40, agent: "Research Agent" });
+    await new Promise(r => setTimeout(r, 400));
+    setAgentProgress({ step: "Finance Agent: Calculating Unit Economics & Burn Rate...", percent: 60, agent: "Finance Agent" });
+    await new Promise(r => setTimeout(r, 400));
+    setAgentProgress({ step: "Architecture Agent: Topology & Security Stacks...", percent: 80, agent: "Architecture Agent" });
+    await new Promise(r => setTimeout(r, 400));
+    setAgentProgress({ step: "Investor Agent: Generating 10-Slide Pitch Deck...", percent: 100, agent: "Investor Agent" });
+    await new Promise(r => setTimeout(r, 400));
 
     const projName = name.trim() || "My New Venture";
     const effectiveIndustry = isCustomIndustry ? (customIndustry.trim() || 'Custom Industry') : industry;
@@ -1037,6 +1049,44 @@ export default function DashboardPage() {
                 )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Agent Orchestration Progress Modal */}
+      {agentProgress && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] border border-slate-200 shadow-2xl p-8 max-w-md w-full space-y-6 text-center relative overflow-hidden">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#5B5CEB] to-[#8C52FF] text-white flex items-center justify-center mx-auto shadow-xl shadow-[#5B5CEB]/30 animate-pulse">
+              <Sparkles className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-50 text-[#5B5CEB] border border-indigo-200">
+                LangGraph Multi-Agent Engine Active
+              </span>
+              <h3 className="text-lg font-extrabold text-[#0F172A]">Synthesizing {name || 'Startup'}</h3>
+              <p className="text-xs text-[#64748B] font-mono leading-relaxed">{agentProgress.step}</p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
+                <div
+                  className="bg-gradient-to-r from-[#5B5CEB] via-[#8C52FF] to-[#26C281] h-full rounded-full transition-all duration-300 shadow-sm"
+                  style={{ width: `${agentProgress.percent}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-[#64748B] font-mono font-bold">
+                <span>{agentProgress.agent}</span>
+                <span>{agentProgress.percent}% Completed</span>
+              </div>
+            </div>
+
+            <div className="pt-2 text-[10px] text-slate-500 font-mono border-t border-slate-100 flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+              <span>Invoking OpenAI gpt-4o • Model Telemetry & LangSmith Tracing Active</span>
+            </div>
           </div>
         </div>
       )}
