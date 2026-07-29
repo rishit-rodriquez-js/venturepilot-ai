@@ -278,16 +278,15 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          {/* DYNAMIC MODULE TABS RENDERING */}
           {activeTab === 'overview' && <OverviewTab project={currentProj} aiData={workspaceData} />}
           {activeTab === 'business_plan' && <BusinessPlanTab data={workspaceData.business_plan} projectId={projectId} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'market_research' && <MarketResearchRAGTab projectId={projectId} data={workspaceData.market_research} documents={workspaceData.documents} onRefetch={refetchWorkspaceData} />}
-          {activeTab === 'technical_architecture' && <TechnicalArchitectureView data={workspaceData.technical_architecture} />}
+          {activeTab === 'technical_architecture' && <TechnicalArchitectureView data={workspaceData.technical_architecture} projectId={projectId} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'financial_model' && <FinancialModelTab data={workspaceData.financial_models} projectId={projectId} onRefetch={refetchWorkspaceData} />}
-          {activeTab === 'product_roadmap' && <ProductRoadmapTab data={workspaceData.product_roadmaps} />}
+          {activeTab === 'product_roadmap' && <ProductRoadmapTab data={workspaceData.product_roadmaps} projectId={projectId} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'marketing_strategy' && <MarketingStrategyTab data={workspaceData.marketing_strategies} projectId={projectId} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'investor_deck' && <InvestorDeckTab projectId={projectId} data={workspaceData.investor_decks} onRefetch={refetchWorkspaceData} />}
-          {activeTab === 'downloads' && <DownloadsTab projectId={projectId} />}
+          {activeTab === 'downloads' && <DownloadsTab projectId={projectId} data={workspaceData} />}
           {activeTab === 'evaluation' && <EvaluationTab projectId={projectId} data={workspaceData.evaluations} />}
           {activeTab === 'audit_trail' && <AuditTrailTab logs={workspaceData.audit_logs} />}
           {activeTab === 'version_history' && <VersionHistoryTab projectId={projectId} />}
