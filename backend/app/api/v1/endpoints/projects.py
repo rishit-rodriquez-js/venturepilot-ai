@@ -123,10 +123,12 @@ async def execute_project_workflow(project_id: str, req: ExecuteWorkflowRequest,
     return {
         "status": "success",
         "message": f"Successfully executed workflow for prompt: '{req.prompt}'",
-        "trace_id": res["trace_id"],
+        "trace_status": res.get("trace_status", "disabled"),
+        "trace_id": res.get("trace_id"),
+        "trace_url": res.get("trace_url"),
         "execution_result": res,
         "state": live_state,
-        "project": live_state.get("project", state["project"])
+        "project": live_state.get("project", state.get("project", {}))
     }
 
 @router.post("/{project_id}/upload")
