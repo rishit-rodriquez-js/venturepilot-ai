@@ -114,16 +114,19 @@ async def execute_project_workflow(project_id: str, req: ExecuteWorkflowRequest,
     }
     state.setdefault("audit_trail", []).insert(0, audit_entry)
 
-    # 3. Persist state
+    # 3. UPSERT all workspace modules into Supabase tables
     project_service.save_project_state(project_id, state)
+
+    # 4. Reload live persisted state directly from Supabase DB
+    live_state = project_service.get_project_by_id(project_id, current_user.user_id)
 
     return {
         "status": "success",
         "message": f"Successfully executed workflow for prompt: '{req.prompt}'",
         "trace_id": res["trace_id"],
         "execution_result": res,
-        "state": state,
-        "project": state["project"]
+        "state": live_state,
+        "project": live_state.get("project", state["project"])
     }
 
 @router.post("/{project_id}/upload")
