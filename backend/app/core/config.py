@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
     # LangSmith
-    LANGCHAIN_TRACING_V2: str = "true"
-    LANGCHAIN_ENDPOINT: str = "https://api.smith.langchain.com"
-    LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY", "")
-    LANGCHAIN_PROJECT: str = "VenturePilot-AI"
+    LANGCHAIN_TRACING_V2: str = os.getenv("LANGCHAIN_TRACING_V2") or os.getenv("LANGSMITH_TRACING", "true")
+    LANGCHAIN_ENDPOINT: str = os.getenv("LANGCHAIN_ENDPOINT") or os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY") or os.getenv("LANGSMITH_API_KEY", "")
+    LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT") or os.getenv("LANGSMITH_PROJECT", "VenturePilot-AI")
 
     # JWT
     JWT_SECRET: str = os.getenv("JWT_SECRET", "super-secret-key-venturepilot-enterprise")

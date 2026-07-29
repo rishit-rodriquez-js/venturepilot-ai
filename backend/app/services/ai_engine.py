@@ -10,9 +10,14 @@ from langsmith import Client
 from langsmith.run_helpers import traceable
 
 # Initialize LangSmith environment tracing variables
+os.environ["LANGSMITH_TRACING"] = "true"
 os.environ["LANGCHAIN_TRACING_V2"] = settings.LANGCHAIN_TRACING_V2
+os.environ["LANGSMITH_ENDPOINT"] = settings.LANGCHAIN_ENDPOINT
 os.environ["LANGCHAIN_ENDPOINT"] = settings.LANGCHAIN_ENDPOINT
-os.environ["LANGCHAIN_API_KEY"] = settings.LANGCHAIN_API_KEY
+if settings.LANGCHAIN_API_KEY:
+    os.environ["LANGSMITH_API_KEY"] = settings.LANGCHAIN_API_KEY
+    os.environ["LANGCHAIN_API_KEY"] = settings.LANGCHAIN_API_KEY
+os.environ["LANGSMITH_PROJECT"] = settings.LANGCHAIN_PROJECT
 os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT
 
 # Initialize LangSmith SDK Client
