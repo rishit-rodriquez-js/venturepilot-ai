@@ -9,7 +9,7 @@ import { Rocket, LogOut } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const router = useRouter();
-  const { user, activeProject, clearStore } = useVentureStore();
+  const { user, activeProject, setUser, setProjects, setActiveProject } = useVentureStore();
 
   const handleSignOut = async () => {
     try {
@@ -17,8 +17,9 @@ export const Navbar: React.FC = () => {
     } catch (e) {
       console.warn("Signed out local session");
     }
-    // Clear Zustand store & browser cache completely on signout
-    clearStore();
+    setUser(null);
+    setProjects([]);
+    setActiveProject(null);
     window.localStorage.clear();
     window.sessionStorage.clear();
     router.push('/');

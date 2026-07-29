@@ -54,31 +54,45 @@ async def get_project_state(project_id: str, current_user: UserContext = Depends
 @router.post("/{project_id}/execute")
 async def execute_project_workflow(project_id: str, req: ExecuteWorkflowRequest, current_user: UserContext = Depends(get_current_user)):
     state = project_service.get_project_by_id(project_id, current_user.user_id)
+    proj = state.get("project", {})
 
-    # Domain Guardrail Check
-    if not ai_engine.validate_domain(req.prompt):
+    # Run LangGraph Orchestration Pipeline
+    res = await ai_engine.run_orchestrated_pipeline(
+        project_id=project_id,
+        name=proj.get("name", "Your Startup"),
+        industry=proj.get("industry", "Enterprise SaaS"),
+        problem=proj.get("problem_statement", "Manual processes"),
+        solution=proj.get("solution_overview", "AI Solution"),
+        prompt=req.prompt
+    )
+
+    if res.get("rejected"):
         return {
+            "status": "rejected",
             "rejected": True,
-            "error": "This platform is exclusively designed for startup planning and entrepreneurship. Your request falls outside the supported business domain.",
-            "state": state
+            "detail": res.get("error", "Request rejected by domain guardrail.")
         }
 
-    # Execute Cascade State Update
+    # Update in-memory state and append real audit trail log
     state["project"]["readiness_score"] = min(100, state["project"]["readiness_score"] + 1)
-    state["business_plan"]["version"] = "v3.2"
-    
-    # Append Audit Log
     state["audit_trail"].insert(0, {
         "timestamp": datetime.now().strftime("%H:%M:%S"),
-        "agent": "AI Co-Founder Engine",
-        "action": f"EXECUTED_COMMAND: {req.prompt[:30]}...",
+        "agent": "LangGraph Swarm Engine",
+        "action": f"EXECUTED_COMMAND: {req.prompt[:35]}...",
         "status": "Completed",
-        "latency": "2.1s",
-        "tokens": 3410,
-        "trace_id": f"ls_{int(datetime.now().timestamp())}"
+        "latency": f"{res['latency_ms']}ms",
+        "tokens": res["tokens_consumed"],
+        "trace_id": res["trace_id"]
     })
 
-    return state
+    return {
+        "status": "success",
+        "message": f"Successfully executed workflow for prompt: '{req.prompt}'",
+        "trace_id": res["trace_id"],
+        "execution_result": res,
+        "state": state,
+        "project": state.get("project", {})
+    }
 
 @router.post("/{project_id}/upload")
 async def upload_project_document(project_id: str, req: UploadDocumentRequest, current_user: UserContext = Depends(get_current_user)):

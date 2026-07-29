@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { History, Plus, RotateCcw } from 'lucide-react';
+import { useVentureStore } from '@/lib/store';
 import { apiClient } from '@/lib/api';
 
 interface VersionProps {
@@ -9,6 +10,7 @@ interface VersionProps {
 }
 
 export const VersionHistoryTab: React.FC<VersionProps> = ({ projectId }) => {
+  const { user } = useVentureStore();
   const [versions, setVersions] = useState<any[]>([]);
 
   useEffect(() => {
@@ -49,15 +51,15 @@ export const VersionHistoryTab: React.FC<VersionProps> = ({ projectId }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <History className="w-5 h-5 text-indigo-400" />
+          <h2 className="text-xl font-bold text-[#0F172A] flex items-center gap-2">
+            <History className="w-5 h-5 text-[#5B5CEB]" />
             <span>Governance State Snapshots & Version History</span>
           </h2>
-          <p className="text-xs text-slate-400">Governance rollback control points and state snapshots.</p>
+          <p className="text-xs text-[#64748B]">Governance rollback control points and state snapshots.</p>
         </div>
         <button
           onClick={handleSnapshot}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition shadow"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#5B5CEB] hover:bg-[#4a4bd9] text-white text-xs font-bold transition shadow-md"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Create Version Snapshot</span>
@@ -66,16 +68,16 @@ export const VersionHistoryTab: React.FC<VersionProps> = ({ projectId }) => {
 
       <div className="space-y-3">
         {versions.map((v: any, idx: number) => (
-          <div key={idx} className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
+          <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between text-xs shadow-2xs">
             <div>
-              <div className="font-bold text-slate-200 flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-400 text-[10px]">v{v.version_number}</span>
+              <div className="font-bold text-[#0F172A] flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-[#5B5CEB] font-mono text-[10px]">v{v.version_number}</span>
                 <span>{v.snapshot_label}</span>
               </div>
-              <div className="text-[10px] text-slate-500 mt-1">{v.created_by} • {v.timestamp}</div>
+              <div className="text-[10px] text-[#64748B] mt-1">{v.created_by} • {v.timestamp}</div>
             </div>
 
-            <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-300 text-xs font-medium border border-slate-700 transition">
+            <button className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F7F8FC] hover:bg-slate-100 text-[#5B5CEB] text-xs font-medium border border-slate-200 transition">
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Rollback State</span>
             </button>

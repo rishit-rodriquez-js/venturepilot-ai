@@ -31,11 +31,87 @@ export default function WorkspacePage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params?.id as string;
-  const { user, setUser, projects, activeProject, startupState, setActiveProject } = useVentureStore();
+  const { user, setUser, activeProject, setActiveProject } = useVentureStore();
 
   const [activeTab, setActiveTab] = useState('overview');
-  const [aiResult, setAiResult] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Source of Truth: All workspace tables loaded directly from Supabase DB
+  const [workspaceData, setWorkspaceData] = useState<{
+    project: any;
+    business_plan: any;
+    market_research: any;
+    competitor_analysis: any;
+    technical_architecture: any;
+    financial_models: any;
+    product_roadmaps: any;
+    marketing_strategies: any;
+    investor_decks: any;
+    documents: any[];
+    evaluations: any;
+    audit_logs: any[];
+  }>({
+    project: null,
+    business_plan: null,
+    market_research: null,
+    competitor_analysis: null,
+    technical_architecture: null,
+    financial_models: null,
+    product_roadmaps: null,
+    marketing_strategies: null,
+    investor_decks: null,
+    documents: [],
+    evaluations: null,
+    audit_logs: []
+  });
+
+  const refetchWorkspaceData = async () => {
+    if (!projectId) return;
+    try {
+      const [
+        { data: bp },
+        { data: mr },
+        { data: ca },
+        { data: ta },
+        { data: fm },
+        { data: pr },
+        { data: ms },
+        { data: id },
+        { data: docs },
+        { data: ev },
+        { data: audit }
+      ] = await Promise.all([
+        supabase.from('business_plans').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('market_research').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('competitor_analysis').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('technical_architecture').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('financial_models').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('product_roadmaps').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('marketing_strategies').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('investor_decks').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('documents').select('*').eq('project_id', projectId),
+        supabase.from('evaluations').select('*').eq('project_id', projectId).maybeSingle(),
+        supabase.from('audit_logs').select('*').eq('project_id', projectId).order('timestamp', { ascending: false })
+      ]);
+
+      setWorkspaceData((prev) => ({
+        ...prev,
+        business_plan: bp,
+        market_research: mr,
+        competitor_analysis: ca,
+        technical_architecture: ta,
+        financial_models: fm,
+        product_roadmaps: pr,
+        marketing_strategies: ms,
+        investor_decks: id,
+        documents: docs || [],
+        evaluations: ev,
+        audit_logs: audit || []
+      }));
+    } catch (e) {
+      console.error("[Workspace Refetch Failed]", e);
+    }
+  };
 
   useEffect(() => {
     const validateAccessAndLoad = async () => {
@@ -50,8 +126,6 @@ export default function WorkspacePage() {
         }
 
         const authUser = authData.user;
-        console.log("[Workspace User Verified] Authenticated User ID:", authUser.id);
-
         if (!user) {
           setUser({
             id: authUser.id,
@@ -64,14 +138,11 @@ export default function WorkspacePage() {
 
         if (projectId) {
           // 1. Fetch project record directly from Supabase
-          console.log("[Workspace Query Started] Querying Supabase projects for ID:", projectId);
           const { data: dbProj, error: dbProjErr } = await supabase
             .from('projects')
             .select('*')
             .eq('id', projectId)
             .maybeSingle();
-
-          console.log("[Workspace Query Result] Supabase project row:", { dbProj, dbProjErr });
 
           let fetchedProj = dbProj;
 
@@ -87,7 +158,6 @@ export default function WorkspacePage() {
           }
 
           if (!fetchedProj) {
-            console.error("[Workspace Project Not Found] No project found for ID:", projectId);
             alert(`Project '${projectId}' was not found in database.`);
             router.push('/dashboard');
             return;
@@ -95,17 +165,14 @@ export default function WorkspacePage() {
 
           // Enforce ownership check
           if (fetchedProj.owner_id && fetchedProj.owner_id !== authUser.id) {
-            console.error("[Workspace Access Denied] User does not own project:", authUser.id);
             alert("Unauthorized workspace access.");
             router.push('/dashboard');
             return;
           }
 
-          console.log("[Active Project Loaded] Project confirmed:", fetchedProj.name);
           setActiveProject(fetchedProj);
 
-          // 2. Fetch all dependent artifacts in parallel from Supabase
-          console.log("[Workspace Data Fetched] Querying artifacts for:", projectId);
+          // 2. Fetch all dependent workspace tables directly from Supabase
           const [
             { data: bp },
             { data: mr },
@@ -132,28 +199,23 @@ export default function WorkspacePage() {
             supabase.from('audit_logs').select('*').eq('project_id', projectId).order('timestamp', { ascending: false })
           ]);
 
-          const currentState = useVentureStore.getState().startupState;
-          useVentureStore.getState().setStartupState({
-            ...currentState,
+          setWorkspaceData({
             project: fetchedProj,
-            business_plan: bp ? { ...currentState.business_plan, ...bp } : currentState.business_plan,
-            market_research: mr ? { ...currentState.market_research, ...mr } : currentState.market_research,
-            competitor_analysis: ca ? { ...currentState.competitor_analysis, ...ca } : currentState.competitor_analysis,
-            technical_architecture: ta ? { ...currentState.technical_architecture, ...ta } : currentState.technical_architecture,
-            financials: fm ? { ...currentState.financials, ...fm } : currentState.financials,
-            product_roadmap: pr ? { ...currentState.product_roadmap, ...pr } : currentState.product_roadmap,
-            marketing_strategy: ms ? { ...currentState.marketing_strategy, ...ms } : currentState.marketing_strategy,
-            investor_deck: id ? { ...currentState.investor_deck, ...id } : currentState.investor_deck,
-            documents: docs || currentState.documents,
-            evaluation: ev ? { ...currentState.evaluation, ...ev } : currentState.evaluation,
-            audit_trail: audit || currentState.audit_trail
+            business_plan: bp,
+            market_research: mr,
+            competitor_analysis: ca,
+            technical_architecture: ta,
+            financial_models: fm,
+            product_roadmaps: pr,
+            marketing_strategies: ms,
+            investor_decks: id,
+            documents: docs || [],
+            evaluations: ev,
+            audit_logs: audit || []
           });
-
-          setAiResult(fetchedProj);
-          console.log("[Navigation Completed] Workspace successfully rehydrated and active.");
         }
       } catch (err: any) {
-        console.error("[Workspace Load Exception] Stack trace:", err);
+        console.error("[Workspace Load Exception]", err);
         alert(`Failed to load workspace: ${err?.message || 'Unknown error'}`);
         router.push('/dashboard');
       } finally {
@@ -180,7 +242,7 @@ export default function WorkspacePage() {
     );
   }
 
-  const currentProj = activeProject || startupState.project;
+  const currentProj = workspaceData.project || activeProject;
 
   return (
     <div className="min-h-screen bg-[#F7F8FC] text-[#0F172A] flex flex-col bg-executive-mesh relative">
@@ -206,7 +268,7 @@ export default function WorkspacePage() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-[#5B5CEB] text-xs font-extrabold">
                 <Award className="w-4 h-4 text-[#5B5CEB]" />
-                <span>Investor Readiness: {startupState.investor_deck.overall_score || currentProj?.readiness_score || 85}/100</span>
+                <span>Investor Readiness: {workspaceData.investor_decks?.overall_score || currentProj?.readiness_score || 85}/100</span>
               </div>
 
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-[#26C281] text-xs font-bold">
@@ -217,29 +279,29 @@ export default function WorkspacePage() {
           </div>
 
           {/* DYNAMIC MODULE TABS RENDERING */}
-          {activeTab === 'overview' && <OverviewTab project={currentProj} aiData={aiResult} />}
-          {activeTab === 'business_plan' && <BusinessPlanTab data={aiResult} />}
-          {activeTab === 'market_research' && <MarketResearchRAGTab projectId={projectId} />}
-          {activeTab === 'technical_architecture' && <TechnicalArchitectureView data={aiResult?.tech_architecture} />}
-          {activeTab === 'financial_model' && <FinancialModelTab data={aiResult?.financials} />}
-          {activeTab === 'product_roadmap' && <ProductRoadmapTab data={aiResult?.product_roadmap} />}
-          {activeTab === 'marketing_strategy' && <MarketingStrategyTab data={aiResult?.marketing_strategy} />}
-          {activeTab === 'investor_deck' && <InvestorDeckTab projectId={projectId} />}
+          {activeTab === 'overview' && <OverviewTab project={currentProj} aiData={workspaceData} />}
+          {activeTab === 'business_plan' && <BusinessPlanTab data={workspaceData.business_plan} projectId={projectId} onRefetch={refetchWorkspaceData} />}
+          {activeTab === 'market_research' && <MarketResearchRAGTab projectId={projectId} data={workspaceData.market_research} documents={workspaceData.documents} onRefetch={refetchWorkspaceData} />}
+          {activeTab === 'technical_architecture' && <TechnicalArchitectureView data={workspaceData.technical_architecture} />}
+          {activeTab === 'financial_model' && <FinancialModelTab data={workspaceData.financial_models} projectId={projectId} onRefetch={refetchWorkspaceData} />}
+          {activeTab === 'product_roadmap' && <ProductRoadmapTab data={workspaceData.product_roadmaps} />}
+          {activeTab === 'marketing_strategy' && <MarketingStrategyTab data={workspaceData.marketing_strategies} projectId={projectId} onRefetch={refetchWorkspaceData} />}
+          {activeTab === 'investor_deck' && <InvestorDeckTab projectId={projectId} data={workspaceData.investor_decks} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'downloads' && <DownloadsTab projectId={projectId} />}
-          {activeTab === 'evaluation' && <EvaluationTab projectId={projectId} />}
-          {activeTab === 'audit_trail' && <AuditTrailTab />}
+          {activeTab === 'evaluation' && <EvaluationTab projectId={projectId} data={workspaceData.evaluations} />}
+          {activeTab === 'audit_trail' && <AuditTrailTab logs={workspaceData.audit_logs} />}
           {activeTab === 'version_history' && <VersionHistoryTab projectId={projectId} />}
         </main>
       </div>
 
-      {/* Ctrl + K Action Command Palette */}
+      {/* Action Command Palette */}
       <CommandPalette
         onNavigateTab={(tab) => setActiveTab(tab)}
         onExportPackage={() => setActiveTab('downloads')}
       />
 
       {/* Floating Enterprise AI Copilot Command Bar */}
-      <AICopilotBar projectId={projectId} />
+      <AICopilotBar projectId={projectId} onRefetchWorkspaceData={refetchWorkspaceData} />
     </div>
   );
 }

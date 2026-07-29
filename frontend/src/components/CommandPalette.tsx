@@ -17,7 +17,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const { startupState } = useVentureStore();
+  const { activeProject } = useVentureStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

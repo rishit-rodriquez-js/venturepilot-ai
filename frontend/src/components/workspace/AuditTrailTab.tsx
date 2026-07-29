@@ -1,13 +1,13 @@
 "use client";
 
 import React from 'react';
-import { History, ShieldCheck, CheckCircle2, Clock, Cpu, ExternalLink, Sparkles, Inbox } from 'lucide-react';
-import { useVentureStore } from '@/lib/store';
+import { History, ExternalLink, Sparkles, Inbox } from 'lucide-react';
 
-export const AuditTrailTab: React.FC = () => {
-  const { startupState } = useVentureStore();
-  const logs = startupState?.audit_trail || [];
+interface AuditProps {
+  logs?: any[];
+}
 
+export const AuditTrailTab: React.FC<AuditProps> = ({ logs = [] }) => {
   const langsmithWorkspaceUrl = "https://smith.langchain.com/projects/VenturePilot-AI";
 
   return (

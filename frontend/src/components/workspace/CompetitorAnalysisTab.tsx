@@ -1,13 +1,24 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Target, Award, Shield, DollarSign, Globe, CheckCircle2, TrendingUp, Cpu, Building2 } from 'lucide-react';
-import { useVentureStore } from '@/lib/store';
+import { Target, Shield, Globe, TrendingUp, Building2 } from 'lucide-react';
 
-export const CompetitorAnalysisTab: React.FC = () => {
-  const { startupState } = useVentureStore();
+interface CompProps {
+  data?: any;
+}
+
+export const CompetitorAnalysisTab: React.FC<CompProps> = ({ data }) => {
   const [region, setRegion] = useState<'India' | 'Global'>('India');
-  const compData = startupState.competitor_analysis;
+
+  const defaultCompetitors = [
+    { name: "Your Startup", funding: "₹2.0 Crore Ask", strength: "Autonomous AI Agent Workflow + RAG", weakness: "Early brand awareness", moat: "Proprietary LangGraph Swarm Engine" },
+    { name: "Legacy SaaS Consultancies", funding: "Bootstrapped", strength: "Established corporate networks", weakness: "Manual execution & slow SLA turnaround", moat: "Human relationships" },
+    { name: "Global Generic AI Wrappers", funding: "$5M Seed", strength: "High initial marketing budget", weakness: "Lack of Indian statutory/tax alignment", moat: "Basic UI prompt wrapper" }
+  ];
+
+  const competitors = data?.competitors || defaultCompetitors;
+  const gapAnalysis = data?.gap_analysis || "Legacy providers charge high retainer fees with manual deliverables. VenturePilot AI delivers 10x faster execution with RAG memory.";
+  const competitiveAdvantage = data?.competitive_advantage || "Autonomous multi-agent orchestration with direct Supabase vector isolation and LangSmith auditability.";
 
   return (
     <div className="space-y-6">
@@ -16,9 +27,9 @@ export const CompetitorAnalysisTab: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-[#0F172A] flex items-center gap-2">
             <Target className="w-5 h-5 text-[#5B5CEB]" />
-            <span>India-First Competitor & Moat Analysis</span>
+            <span>Competitor & Strategic Moat Analysis</span>
           </h2>
-          <p className="text-xs text-[#64748B]">Benchmark against Indian market incumbents and statutory ecosystem schemes.</p>
+          <p className="text-xs text-[#64748B]">Benchmark against market incumbents and statutory ecosystem schemes.</p>
         </div>
 
         {/* Region Selector */}
@@ -95,7 +106,7 @@ export const CompetitorAnalysisTab: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {compData.competitors.map((c, idx) => (
+              {competitors.map((c: any, idx: number) => (
                 <tr key={idx} className={c.name.includes("Your") ? "bg-indigo-50/50 font-bold" : ""}>
                   <td className="py-3.5 px-2 text-[#0F172A]">
                     {c.name}
@@ -121,8 +132,7 @@ export const CompetitorAnalysisTab: React.FC = () => {
             <TrendingUp className="w-4 h-4 text-[#00C6AE]" />
             <span>Market Gap & Opportunity Analysis</span>
           </h4>
-          <p className="text-xs text-[#64748B] leading-relaxed">{compData.gap_analysis}</p>
-          <div className="pt-2 text-xs font-bold text-[#0F172A]">{compData.opportunity_matrix}</div>
+          <p className="text-xs text-[#64748B] leading-relaxed">{gapAnalysis}</p>
         </div>
 
         <div className="glass-exec-card p-6 space-y-2">
@@ -130,8 +140,7 @@ export const CompetitorAnalysisTab: React.FC = () => {
             <Shield className="w-4 h-4 text-[#8C52FF]" />
             <span>Your Defensible Competitive Advantage</span>
           </h4>
-          <p className="text-xs text-[#64748B] leading-relaxed">{compData.competitive_advantage}</p>
-          <div className="pt-2 text-xs font-bold text-[#26C281]">Multi-lingual Indian edge AI voice interface + RAG vector store</div>
+          <p className="text-xs text-[#64748B] leading-relaxed">{competitiveAdvantage}</p>
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Cpu, Award, DollarSign, Clock, Layers, CheckCircle2, ShieldCheck, AlertCircle, TrendingUp } from 'lucide-react';
-import { useVentureStore } from '@/lib/store';
 
 interface OverviewProps {
   project: any;
@@ -10,10 +9,7 @@ interface OverviewProps {
 }
 
 export const OverviewTab: React.FC<OverviewProps> = ({ project, aiData }) => {
-  const { startupState } = useVentureStore();
-  const state = startupState || {};
-
-  const health = aiData?.overview?.health_scores || state.overview?.health_scores || {
+  const health = aiData?.overview?.health_scores || {
     validation: 92,
     market: 85,
     finance: 88,
@@ -21,18 +17,18 @@ export const OverviewTab: React.FC<OverviewProps> = ({ project, aiData }) => {
   };
 
   const recs = [
-    { priority: "High", text: "Interview 10 potential Indian Agritech / FPO customers.", status: "Action Required" },
-    { priority: "Medium", text: "Optimize INR pricing strategy for Tier 2/3 market adoption.", status: "In Progress" },
-    { priority: "Low", text: "Apply for DPIIT Startup India recognition & SISFS seed grant.", status: "Queued" }
+    { priority: "High", text: `Interview potential ${project?.industry || 'Enterprise'} customer leads.`, status: "Action Required" },
+    { priority: "Medium", text: "Optimize unit economics & pricing strategy for target market.", status: "In Progress" },
+    { priority: "Low", text: "Apply for startup recognition & seed grant funding.", status: "Queued" }
   ];
 
-  const timeline = state.overview?.timeline || [
+  const timeline = [
     { stage: "Idea Created", progress: 100, status: "Completed", owner: "Founder", confidence: 98, updated: "Today" },
     { stage: "Validation", progress: 85, status: "Active", owner: "AI Co-Founder", confidence: 92, updated: "Today" },
     { stage: "Research", progress: 100, status: "Completed", owner: "Research Agent", confidence: 96, updated: "Today" },
-    { stage: "Business Plan", progress: 75, status: "Active", owner: "Business Agent", confidence: 89, updated: "Today" },
-    { stage: "Financial Model", progress: 60, status: "Active", owner: "Finance Agent", confidence: 88, updated: "Today" },
-    { stage: "Investor Ready", progress: 40, status: "Queued", owner: "Governance Agent", confidence: 85, updated: "Pending" }
+    { stage: "Business Plan", progress: 80, status: "Active", owner: "Planner Agent", confidence: 89, updated: "Today" },
+    { stage: "Financial Model", progress: 70, status: "Active", owner: "Finance Agent", confidence: 88, updated: "Today" },
+    { stage: "Investor Ready", progress: 60, status: "Queued", owner: "Investor Agent", confidence: 85, updated: "Pending" }
   ];
 
   return (
@@ -59,13 +55,13 @@ export const OverviewTab: React.FC<OverviewProps> = ({ project, aiData }) => {
         <div className="glass-exec-card p-5">
           <div className="text-[#64748B] text-xs font-bold uppercase tracking-wider mb-1">Market Analysis</div>
           <div className="text-3xl font-extrabold text-[#00C6AE]">{health.market}%</div>
-          <div className="text-[11px] text-[#00C6AE] mt-1 font-semibold">NITI Aayog RAG Verified</div>
+          <div className="text-[11px] text-[#00C6AE] mt-1 font-semibold">pgvector RAG Verified</div>
         </div>
 
         <div className="glass-exec-card p-5">
           <div className="text-[#64748B] text-xs font-bold uppercase tracking-wider mb-1">Financial Health</div>
           <div className="text-3xl font-extrabold text-[#8C52FF]">{health.finance}%</div>
-          <div className="text-[11px] text-[#8C52FF] mt-1 font-semibold">24 Mo Runway (INR ₹)</div>
+          <div className="text-[11px] text-[#8C52FF] mt-1 font-semibold">18 Month Runway (INR ₹)</div>
         </div>
 
         <div className="glass-exec-card p-5">

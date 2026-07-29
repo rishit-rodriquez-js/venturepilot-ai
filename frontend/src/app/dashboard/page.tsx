@@ -7,11 +7,11 @@ import { Sidebar } from '@/components/Sidebar';
 import { useVentureStore, Project } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { apiClient } from '@/lib/api';
-import { Plus, Rocket, Award, ArrowRight, Play, Upload, FileText, BarChart2, ShieldCheck, Cpu, Database, Compass, Layers, DollarSign, Globe, CheckCircle2, RefreshCw, X } from 'lucide-react';
+import { Plus, Rocket, Award, ArrowRight, Play, Upload, FileText, BarChart2, ShieldCheck, Cpu, Database, Compass, Layers, DollarSign, Globe, CheckCircle2, RefreshCw, X, Sparkles } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { projects, setProjects, addProject, user, setUser, setActiveProject, initNewProjectState } = useVentureStore();
+  const { projects, setProjects, user, setUser, setActiveProject } = useVentureStore();
   const [authLoading, setAuthLoading] = useState(true);
   const [showWizardModal, setShowWizardModal] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
@@ -477,9 +477,6 @@ export default function DashboardPage() {
     setProjects(finalProjectList);
     setActiveProject(insertedDbProject);
     console.log("[Dashboard Updated] Dashboard state updated successfully.");
-
-    initNewProjectState(insertedDbProject, problem, solution, effectiveIndustry, country, effectiveFundingGoal, businessModel);
-
     setShowWizardModal(false);
     setWizardStep(1);
     setLoading(false);
@@ -528,23 +525,7 @@ export default function DashboardPage() {
 
       console.log("[Workspace Data Fetched] Successfully fetched artifact context for:", proj.id);
 
-      // 2. Rehydrate Zustand state with fetched workspace artifacts
-      const currentState = useVentureStore.getState().startupState;
-      useVentureStore.getState().setStartupState({
-        ...currentState,
-        project: proj,
-        business_plan: bp ? { ...currentState.business_plan, ...bp } : currentState.business_plan,
-        market_research: mr ? { ...currentState.market_research, ...mr } : currentState.market_research,
-        competitor_analysis: ca ? { ...currentState.competitor_analysis, ...ca } : currentState.competitor_analysis,
-        technical_architecture: ta ? { ...currentState.technical_architecture, ...ta } : currentState.technical_architecture,
-        financials: fm ? { ...currentState.financials, ...fm } : currentState.financials,
-        product_roadmap: pr ? { ...currentState.product_roadmap, ...pr } : currentState.product_roadmap,
-        marketing_strategy: ms ? { ...currentState.marketing_strategy, ...ms } : currentState.marketing_strategy,
-        investor_deck: id ? { ...currentState.investor_deck, ...id } : currentState.investor_deck,
-        documents: docs || currentState.documents,
-        evaluation: ev ? { ...currentState.evaluation, ...ev } : currentState.evaluation,
-        audit_trail: audit || currentState.audit_trail
-      });
+      setActiveProject(proj);
 
       console.log("[Navigation Completed] Navigating cleanly via router.push to /workspace/" + proj.id);
       router.push(`/workspace/${proj.id}`);

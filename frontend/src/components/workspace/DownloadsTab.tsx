@@ -1,21 +1,19 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Download, FileText, Presentation, Code, Map, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { useVentureStore } from '@/lib/store';
+import { Download, FileText, Presentation, Code, Map, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
 interface DownloadsProps {
   projectId: string;
+  data?: any;
 }
 
-export const DownloadsTab: React.FC<DownloadsProps> = ({ projectId }) => {
-  const { startupState, activeProject } = useVentureStore();
+export const DownloadsTab: React.FC<DownloadsProps> = ({ projectId, data }) => {
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
 
-  const projName = activeProject?.name || startupState.project.name || 'Your Startup';
+  const projName = data?.project?.name || 'Your Startup';
 
-  // Exactly four essential deliverables as required
   const files = [
     {
       name: "BusinessPlan.pdf",
@@ -58,32 +56,18 @@ export const DownloadsTab: React.FC<DownloadsProps> = ({ projectId }) => {
         responseType: 'blob'
       });
 
-      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      // Dynamic text export fallback
-      let textContent = `VENTUREPILOT AI EXPORT\nFile: ${fileName}\nProject: ${projName}\nIndustry: ${startupState.project.industry}\nGenerated: ${new Date().toISOString()}\n\n`;
-      if (fileName.endsWith('.pptx')) {
-        textContent += `PITCH DECK SLIDES\n`;
-        startupState.investor_deck.slides.forEach((s) => {
-          textContent += `[Slide ${s.slide_number}: ${s.title}]\n${s.content}\n\n`;
-        });
-      } else {
-        textContent += `EXECUTIVE SUMMARY\n${startupState.business_plan.executive_summary}\n\nPROBLEM:\n${startupState.business_plan.problem}\n\nSOLUTION:\n${startupState.business_plan.solution}\n`;
-      }
+      const headerType = response.headers['content-type'];
+      const mimeType = typeof headerType === 'string' ? headerType : 'application/octet-stream';
 
-      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([response.data], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
       a.click();
       URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(`Download failed: ${err.message}`);
     } finally {
       setDownloadingFile(null);
     }
