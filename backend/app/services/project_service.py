@@ -146,12 +146,17 @@ class ProjectService:
                 "competitor_analysis": ca_res.data if ca_res and ca_res.data else {},
                 "technical_architecture": ta_res.data if ta_res and ta_res.data else {},
                 "financials": fm_res.data if fm_res and fm_res.data else {},
+                "financial_models": fm_res.data if fm_res and fm_res.data else {},
                 "product_roadmap": pr_res.data if pr_res and pr_res.data else {},
+                "product_roadmaps": pr_res.data if pr_res and pr_res.data else {},
                 "marketing_strategy": ms_data,
+                "marketing_strategies": ms_data,
                 "investor_deck": id_res.data if id_res and id_res.data else {},
+                "investor_decks": id_res.data if id_res and id_res.data else {},
                 "documents": docs_res.data if docs_res and docs_res.data else [],
-                "evaluation": ev_res.data if ev_res and ev_res.data else {},
-                "audit_trail": audit_res.data if audit_res and audit_res.data else []
+                "evaluations": ev_res.data if ev_res and ev_res.data else {},
+                "audit_trail": audit_res.data if audit_res and audit_res.data else [],
+                "audit_logs": audit_res.data if audit_res and audit_res.data else []
             }
         except Exception as e:
             logger.error(f"[Supabase get_project_by_id Exception] {e}")

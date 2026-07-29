@@ -65,10 +65,34 @@ export default function WorkspacePage() {
     audit_logs: []
   });
 
-  const refetchWorkspaceData = async () => {
+  const refetchWorkspaceData = async (incomingState?: any) => {
     if (!projectId) return;
+
+    if (incomingState) {
+      if (incomingState.project) {
+        setActiveProject(incomingState.project);
+      }
+      setWorkspaceData((prev) => ({
+        ...prev,
+        project: incomingState.project || prev.project,
+        business_plan: incomingState.business_plan || prev.business_plan,
+        market_research: incomingState.market_research || prev.market_research,
+        competitor_analysis: incomingState.competitor_analysis || prev.competitor_analysis,
+        technical_architecture: incomingState.technical_architecture || prev.technical_architecture,
+        financial_models: incomingState.financials || incomingState.financial_models || prev.financial_models,
+        product_roadmaps: incomingState.product_roadmap || incomingState.product_roadmaps || prev.product_roadmaps,
+        marketing_strategies: incomingState.marketing_strategy || incomingState.marketing_strategies || prev.marketing_strategies,
+        investor_decks: incomingState.investor_deck || incomingState.investor_decks || prev.investor_decks,
+        documents: incomingState.documents || prev.documents,
+        evaluations: incomingState.evaluations || prev.evaluations,
+        audit_logs: incomingState.audit_trail || incomingState.audit_logs || prev.audit_logs
+      }));
+      return;
+    }
+
     try {
       const [
+        { data: proj },
         { data: bp },
         { data: mr },
         { data: ca },
@@ -81,6 +105,7 @@ export default function WorkspacePage() {
         { data: ev },
         { data: audit }
       ] = await Promise.all([
+        supabase.from('projects').select('*').eq('id', projectId).maybeSingle(),
         supabase.from('business_plans').select('*').eq('project_id', projectId).maybeSingle(),
         supabase.from('market_research').select('*').eq('project_id', projectId).maybeSingle(),
         supabase.from('competitor_analysis').select('*').eq('project_id', projectId).maybeSingle(),
@@ -94,8 +119,13 @@ export default function WorkspacePage() {
         supabase.from('audit_logs').select('*').eq('project_id', projectId).order('timestamp', { ascending: false })
       ]);
 
+      if (proj) {
+        setActiveProject(proj);
+      }
+
       setWorkspaceData((prev) => ({
         ...prev,
+        project: proj || prev.project,
         business_plan: bp,
         market_research: mr,
         competitor_analysis: ca,
@@ -137,7 +167,6 @@ export default function WorkspacePage() {
         }
 
         if (projectId) {
-          // 1. Fetch project record directly from Supabase
           const { data: dbProj, error: dbProjErr } = await supabase
             .from('projects')
             .select('*')
@@ -163,7 +192,6 @@ export default function WorkspacePage() {
             return;
           }
 
-          // Enforce ownership check
           if (fetchedProj.owner_id && fetchedProj.owner_id !== authUser.id) {
             alert("Unauthorized workspace access.");
             router.push('/dashboard');
@@ -172,7 +200,6 @@ export default function WorkspacePage() {
 
           setActiveProject(fetchedProj);
 
-          // 2. Fetch all dependent workspace tables directly from Supabase
           const [
             { data: bp },
             { data: mr },
@@ -281,6 +308,7 @@ export default function WorkspacePage() {
           {activeTab === 'overview' && <OverviewTab project={currentProj} aiData={workspaceData} />}
           {activeTab === 'business_plan' && <BusinessPlanTab data={workspaceData.business_plan} projectId={projectId} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'market_research' && <MarketResearchRAGTab projectId={projectId} data={workspaceData.market_research} documents={workspaceData.documents} onRefetch={refetchWorkspaceData} />}
+          {activeTab === 'competitor_analysis' && <CompetitorAnalysisTab data={workspaceData.competitor_analysis} />}
           {activeTab === 'technical_architecture' && <TechnicalArchitectureView data={workspaceData.technical_architecture} projectId={projectId} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'financial_model' && <FinancialModelTab data={workspaceData.financial_models} projectId={projectId} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'product_roadmap' && <ProductRoadmapTab data={workspaceData.product_roadmaps} projectId={projectId} onRefetch={refetchWorkspaceData} />}

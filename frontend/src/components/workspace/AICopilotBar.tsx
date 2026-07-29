@@ -24,7 +24,7 @@ interface ChatMessage {
 
 interface AICopilotBarProps {
   projectId: string;
-  onRefetchWorkspaceData?: () => void;
+  onRefetchWorkspaceData?: (incomingState?: any) => void;
 }
 
 export const AICopilotBar: React.FC<AICopilotBarProps> = ({ projectId, onRefetchWorkspaceData }) => {
@@ -153,7 +153,7 @@ export const AICopilotBar: React.FC<AICopilotBarProps> = ({ projectId, onRefetch
       );
 
       if (onRefetchWorkspaceData) {
-        onRefetchWorkspaceData();
+        onRefetchWorkspaceData(resData.state);
       }
     } catch (err: any) {
       console.error("[Copilot AI Error]", err);
