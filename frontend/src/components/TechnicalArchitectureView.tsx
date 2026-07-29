@@ -8,7 +8,7 @@ import { AIMetadataBadge, EmptyState } from './workspace/WorkspaceUIUtils';
 interface TechArchProps {
   data?: any;
   projectId?: string;
-  onRefetch?: () => void;
+  onRefetch?: (incomingState?: any) => void;
 }
 
 export const TechnicalArchitectureView: React.FC<TechArchProps> = ({ data, projectId, onRefetch }) => {
@@ -20,11 +20,11 @@ export const TechnicalArchitectureView: React.FC<TechArchProps> = ({ data, proje
     if (!projectId) return;
     setIsGenerating(true);
     try {
-      await apiClient.post(`/projects/${projectId}/execute`, {
+      const res = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: "Synthesize System Architecture and Technical Topology"
       });
-      if (onRefetch) onRefetch();
+      if (onRefetch) onRefetch(res.data?.state);
     } catch (err: any) {
       alert(`Backend Execution Error: ${err.response?.data?.detail || err.message}`);
     } finally {

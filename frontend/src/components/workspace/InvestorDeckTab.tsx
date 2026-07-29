@@ -8,7 +8,7 @@ import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 interface DeckProps {
   projectId: string;
   data?: any;
-  onRefetch?: () => void;
+  onRefetch?: (incomingState?: any) => void;
 }
 
 export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId, data, onRefetch }) => {
@@ -21,11 +21,11 @@ export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId, data, onRefetc
     if (!projectId) return;
     setIsRegenerating(true);
     try {
-      await apiClient.post(`/projects/${projectId}/execute`, {
+      const res = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: "Generate 10 institution-grade investor pitch deck slides with VC scoring"
       });
-      if (onRefetch) onRefetch();
+      if (onRefetch) onRefetch(res.data?.state);
     } catch (err: any) {
       alert(`Investor Deck Execution Failed: ${err.response?.data?.detail || err.message}`);
     } finally {

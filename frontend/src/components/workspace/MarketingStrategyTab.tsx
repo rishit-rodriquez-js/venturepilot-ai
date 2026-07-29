@@ -8,7 +8,7 @@ import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 interface MarketingProps {
   data?: any;
   projectId?: string;
-  onRefetch?: () => void;
+  onRefetch?: (incomingState?: any) => void;
 }
 
 export const MarketingStrategyTab: React.FC<MarketingProps> = ({ data, projectId, onRefetch }) => {
@@ -20,11 +20,11 @@ export const MarketingStrategyTab: React.FC<MarketingProps> = ({ data, projectId
     if (!projectId) return;
     setIsRegenerating(true);
     try {
-      await apiClient.post(`/projects/${projectId}/execute`, {
+      const res = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: "Synthesize GTM positioning, ICP, marketing channels, and content strategy"
       });
-      if (onRefetch) onRefetch();
+      if (onRefetch) onRefetch(res.data?.state);
     } catch (err: any) {
       alert(`Marketing Execution Failed: ${err.response?.data?.detail || err.message}`);
     } finally {

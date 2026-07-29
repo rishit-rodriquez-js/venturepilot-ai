@@ -8,7 +8,7 @@ import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 interface RoadmapProps {
   data?: any;
   projectId?: string;
-  onRefetch?: () => void;
+  onRefetch?: (incomingState?: any) => void;
 }
 
 export const ProductRoadmapTab: React.FC<RoadmapProps> = ({ data, projectId, onRefetch }) => {
@@ -20,11 +20,11 @@ export const ProductRoadmapTab: React.FC<RoadmapProps> = ({ data, projectId, onR
     if (!projectId) return;
     setIsRegenerating(true);
     try {
-      await apiClient.post(`/projects/${projectId}/execute`, {
+      const res = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: "Synthesize 3 quarterly product roadmap release phases with deliverables"
       });
-      if (onRefetch) onRefetch();
+      if (onRefetch) onRefetch(res.data?.state);
     } catch (err: any) {
       alert(`Roadmap Execution Failed: ${err.response?.data?.detail || err.message}`);
     } finally {

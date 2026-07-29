@@ -8,7 +8,7 @@ import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 interface FinProps {
   data?: any;
   projectId?: string;
-  onRefetch?: () => void;
+  onRefetch?: (incomingState?: any) => void;
 }
 
 export const FinancialModelTab: React.FC<FinProps> = ({ data, projectId, onRefetch }) => {
@@ -20,11 +20,11 @@ export const FinancialModelTab: React.FC<FinProps> = ({ data, projectId, onRefet
     if (!projectId) return;
     setIsRegenerating(true);
     try {
-      await apiClient.post(`/projects/${projectId}/execute`, {
+      const res = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: "Synthesize unit economics, 3-year revenue projections, and funding ask"
       });
-      if (onRefetch) onRefetch();
+      if (onRefetch) onRefetch(res.data?.state);
     } catch (err: any) {
       alert(`Financial Model Execution Failed: ${err.response?.data?.detail || err.message}`);
     } finally {

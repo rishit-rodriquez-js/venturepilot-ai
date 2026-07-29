@@ -8,7 +8,7 @@ import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 interface CompProps {
   data?: any;
   projectId?: string;
-  onRefetch?: () => void;
+  onRefetch?: (incomingState?: any) => void;
 }
 
 export const CompetitorAnalysisTab: React.FC<CompProps> = ({ data, projectId, onRefetch }) => {
@@ -21,11 +21,11 @@ export const CompetitorAnalysisTab: React.FC<CompProps> = ({ data, projectId, on
     if (!projectId) return;
     setIsRegenerating(true);
     try {
-      await apiClient.post(`/projects/${projectId}/execute`, {
+      const res = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: "Identify market competitors, gap analysis, and competitive moat"
       });
-      if (onRefetch) onRefetch();
+      if (onRefetch) onRefetch(res.data?.state);
     } catch (err: any) {
       alert(`Competitor Execution Failed: ${err.response?.data?.detail || err.message}`);
     } finally {

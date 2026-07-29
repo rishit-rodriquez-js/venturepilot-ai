@@ -8,7 +8,7 @@ import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 interface PlanProps {
   data?: any;
   projectId?: string;
-  onRefetch?: () => void;
+  onRefetch?: (incomingState?: any) => void;
 }
 
 export const BusinessPlanTab: React.FC<PlanProps> = ({ data, projectId, onRefetch }) => {
@@ -22,11 +22,11 @@ export const BusinessPlanTab: React.FC<PlanProps> = ({ data, projectId, onRefetc
     setIsRegenerating(true);
     setActiveRegenSection(section);
     try {
-      await apiClient.post(`/projects/${projectId}/execute`, {
+      const res = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: `Regenerate section: ${section}`
       });
-      if (onRefetch) onRefetch();
+      if (onRefetch) onRefetch(res.data?.state);
     } catch (err: any) {
       alert(`Backend Execution Failed: ${err.response?.data?.detail || err.message}`);
     } finally {

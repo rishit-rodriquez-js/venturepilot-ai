@@ -29,6 +29,24 @@ export const OverviewTab: React.FC<OverviewProps> = ({ project, aiData }) => {
     { stage: "Investor Deck", progress: deck.slides?.length > 0 ? 100 : 0, status: deck.slides?.length > 0 ? "Completed" : "Queued", owner: "Investor Agent", confidence: 90 }
   ];
 
+  const recs = [
+    {
+      priority: "High",
+      text: bp.target_customer ? `Engage target customers: ${bp.target_customer.slice(0, 70)}...` : `Interview initial target leads for ${project?.name || 'venture'}.`,
+      status: bp.executive_summary ? "In Progress" : "Action Required"
+    },
+    {
+      priority: "Medium",
+      text: fin.seed_ask_inr ? `Structure ${fin.seed_ask_inr} seed round pitch deck.` : `Optimize pricing and unit economics for ${project?.industry || 'domain'}.`,
+      status: fin.seed_ask_inr ? "Active" : "Queued"
+    },
+    {
+      priority: "Low",
+      text: `Register IP & explore grant funding pathways for ${project?.name || 'startup'}.`,
+      status: "Queued"
+    }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Title */}
@@ -106,6 +124,31 @@ export const OverviewTab: React.FC<OverviewProps> = ({ project, aiData }) => {
                   style={{ width: `${t.progress}%` }}
                 />
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* AI Co-Founder Directives */}
+      <div className="glass-exec-card p-6 space-y-4">
+        <h3 className="text-xs font-extrabold text-[#0F172A] uppercase tracking-wider flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-[#26C281]" />
+          <span>AI Co-Founder Directives & Action Items</span>
+        </h3>
+
+        <div className="space-y-2.5">
+          {recs.map((r: any, idx: number) => (
+            <div key={idx} className="p-3.5 rounded-2xl bg-[#F7F8FC] border border-slate-200 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-3">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                  r.priority === 'High' ? 'bg-rose-50 text-rose-600 border border-rose-200' :
+                  r.priority === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                }`}>
+                  {r.priority} Priority
+                </span>
+                <span className="font-bold text-[#0F172A]">{r.text}</span>
+              </div>
+              <span className="text-[10px] font-mono text-[#64748B]">{r.status}</span>
             </div>
           ))}
         </div>
