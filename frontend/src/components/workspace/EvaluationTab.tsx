@@ -10,6 +10,7 @@ interface EvaluationProps {
 }
 
 export const EvaluationTab: React.FC<EvaluationProps> = ({ projectId, data }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: EvaluationTab Rendered]", data);
   const ev = data || {};
   const isDataPresent = ev && (ev.faithfulness_score !== undefined || ev.answer_relevance_score !== undefined || ev.overall_score !== undefined);
 

@@ -12,6 +12,7 @@ interface DeckProps {
 }
 
 export const InvestorDeckTab: React.FC<DeckProps> = ({ projectId, data, onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: InvestorDeckTab Rendered]", data);
   const deck = data || {};
   const [activeSlideIdx, setActiveSlideIdx] = useState(0);
   const [isRegenerating, setIsRegenerating] = useState(false);

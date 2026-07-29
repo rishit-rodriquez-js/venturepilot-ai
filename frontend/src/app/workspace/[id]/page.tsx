@@ -67,24 +67,29 @@ export default function WorkspacePage() {
     if (!projectId) return;
 
     if (incomingState) {
+      console.log("[Pipeline Audit - Stage 2: Sync State Received in Page.tsx]", incomingState);
       if (incomingState.project) {
         setActiveProject(incomingState.project);
       }
-      setWorkspaceData((prev) => ({
-        ...prev,
-        project: incomingState.project || prev.project,
-        business_plan: incomingState.business_plan || prev.business_plan,
-        market_research: incomingState.market_research || prev.market_research,
-        competitor_analysis: incomingState.competitor_analysis || prev.competitor_analysis,
-        technical_architecture: incomingState.technical_architecture || prev.technical_architecture,
-        financial_models: incomingState.financials || incomingState.financial_models || prev.financial_models,
-        product_roadmaps: incomingState.product_roadmap || incomingState.product_roadmaps || prev.product_roadmaps,
-        marketing_strategies: incomingState.marketing_strategy || incomingState.marketing_strategies || prev.marketing_strategies,
-        investor_decks: incomingState.investor_deck || incomingState.investor_decks || prev.investor_decks,
-        documents: incomingState.documents || prev.documents,
-        evaluations: incomingState.evaluations || prev.evaluations,
-        audit_logs: incomingState.audit_trail || incomingState.audit_logs || prev.audit_logs
-      }));
+      setWorkspaceData((prev) => {
+        const nextState = {
+          ...prev,
+          project: incomingState.project || prev.project,
+          business_plan: incomingState.business_plan || prev.business_plan,
+          market_research: incomingState.market_research || prev.market_research,
+          competitor_analysis: incomingState.competitor_analysis || prev.competitor_analysis,
+          technical_architecture: incomingState.technical_architecture || prev.technical_architecture,
+          financial_models: incomingState.financials || incomingState.financial_models || prev.financial_models,
+          product_roadmaps: incomingState.product_roadmap || incomingState.product_roadmaps || prev.product_roadmaps,
+          marketing_strategies: incomingState.marketing_strategy || incomingState.marketing_strategies || prev.marketing_strategies,
+          investor_decks: incomingState.investor_deck || incomingState.investor_decks || prev.investor_decks,
+          documents: incomingState.documents || prev.documents,
+          evaluations: incomingState.evaluations || prev.evaluations,
+          audit_logs: incomingState.audit_trail || incomingState.audit_logs || prev.audit_logs
+        };
+        console.log("[Pipeline Audit - Stage 3: Workspace React State Updated]", nextState);
+        return nextState;
+      });
       return;
     }
 

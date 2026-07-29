@@ -12,6 +12,7 @@ interface PlanProps {
 }
 
 export const BusinessPlanTab: React.FC<PlanProps> = ({ data, projectId, onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: BusinessPlanTab Rendered]", data);
   const bp = data || {};
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [activeRegenSection, setActiveRegenSection] = useState<string | null>(null);

@@ -12,6 +12,7 @@ interface MarketingProps {
 }
 
 export const MarketingStrategyTab: React.FC<MarketingProps> = ({ data, projectId, onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: MarketingStrategyTab Rendered]", data);
   const mkt = data || {};
   const [isRegenerating, setIsRegenerating] = useState(false);
 

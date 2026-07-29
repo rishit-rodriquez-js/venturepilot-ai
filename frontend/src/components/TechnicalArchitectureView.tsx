@@ -12,6 +12,7 @@ interface TechArchProps {
 }
 
 export const TechnicalArchitectureView: React.FC<TechArchProps> = ({ data, projectId, onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: TechnicalArchitectureView Rendered]", data);
   const ta = data || {};
   const [isGenerating, setIsGenerating] = useState(false);
 

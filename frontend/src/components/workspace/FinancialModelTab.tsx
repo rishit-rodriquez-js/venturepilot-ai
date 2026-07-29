@@ -12,6 +12,7 @@ interface FinProps {
 }
 
 export const FinancialModelTab: React.FC<FinProps> = ({ data, projectId, onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: FinancialModelTab Rendered]", data);
   const fin = data || {};
   const [isRegenerating, setIsRegenerating] = useState(false);
 

@@ -31,6 +31,7 @@ interface RAGResult {
 }
 
 export const MarketResearchRAGTab: React.FC<RAGProps> = ({ projectId, data, documents = [], onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: MarketResearchRAGTab Rendered]", { data, documents });
   const [query, setQuery] = useState('');
   const [isExecutingRAG, setIsExecutingRAG] = useState(false);
   const [isUploading, setIsUploading] = useState(false);

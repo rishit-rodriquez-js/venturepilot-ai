@@ -12,6 +12,7 @@ interface RoadmapProps {
 }
 
 export const ProductRoadmapTab: React.FC<RoadmapProps> = ({ data, projectId, onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: ProductRoadmapTab Rendered]", data);
   const rm = data || {};
   const [isRegenerating, setIsRegenerating] = useState(false);
 

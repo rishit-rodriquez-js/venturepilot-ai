@@ -9,6 +9,7 @@ interface OverviewProps {
 }
 
 export const OverviewTab: React.FC<OverviewProps> = ({ project, aiData }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: OverviewTab Rendered]", { project, aiData });
   const deck = aiData?.investor_deck || {};
   const ev = aiData?.evaluations || {};
   const fin = aiData?.financials || aiData?.financial_models || {};

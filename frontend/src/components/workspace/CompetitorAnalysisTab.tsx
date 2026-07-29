@@ -12,6 +12,7 @@ interface CompProps {
 }
 
 export const CompetitorAnalysisTab: React.FC<CompProps> = ({ data, projectId, onRefetch }) => {
+  console.log("[Pipeline Audit - Stage 4 & 5: CompetitorAnalysisTab Rendered]", data);
   const comp = data || {};
   const [region, setRegion] = useState<'India' | 'Global'>('India');
   const [isRegenerating, setIsRegenerating] = useState(false);

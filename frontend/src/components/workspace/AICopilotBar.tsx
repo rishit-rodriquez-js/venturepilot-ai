@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Sparkles, Send, Bot, User, ArrowRight, ShieldCheck, ChevronUp, ChevronDown,
-  RefreshCw, Check, Copy, ExternalLink, Activity, Cpu, Zap, Mic, Volume2, X
+  Sparkles, Send, Bot, RefreshCw, Copy, Check, ExternalLink, Mic, X,
+  FileText, Compass, DollarSign, Megaphone, Target, Cpu, Map, Presentation, BarChart2
 } from 'lucide-react';
 import { useVentureStore } from '@/lib/store';
 import { apiClient } from '@/lib/api';
@@ -123,14 +123,23 @@ export const AICopilotBar: React.FC<AICopilotBarProps> = ({ projectId, onRefetch
     setMessages((prev) => [...prev, initialAiMsg]);
 
     try {
+      // Stage 1 Audit: Send execution request to FastAPI router
       const response = await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
         prompt: text
       });
 
       const resData = response.data;
-      const execRes = resData.execution_result || resData;
+      console.log("[Pipeline Audit - Stage 1: API Response Received]", {
+        status: resData.status,
+        message: resData.message,
+        trace_status: resData.trace_status,
+        trace_id: resData.trace_id,
+        hasExecutionResult: !!resData.execution_result,
+        hasState: !!resData.state
+      });
 
+      const execRes = resData.execution_result || resData;
       const traceStatus = resData.trace_status || execRes.trace_status || (resData.trace_id ? 'active' : 'disabled');
       const traceId = resData.trace_id || execRes.trace_id || null;
       const traceUrl = resData.trace_url || execRes.trace_url || (traceId ? `https://smith.langchain.com/projects/p/VenturePilot-AI/r/${traceId}` : null);
@@ -152,7 +161,9 @@ export const AICopilotBar: React.FC<AICopilotBarProps> = ({ projectId, onRefetch
         )
       );
 
+      // Stage 2 Audit: Trigger instant state replacement in parent WorkspacePage component
       if (onRefetchWorkspaceData) {
+        console.log("[Pipeline Audit - Stage 2: Passing State to WorkspacePage]", resData.state);
         onRefetchWorkspaceData(resData.state);
       }
     } catch (err: any) {
@@ -241,7 +252,7 @@ export const AICopilotBar: React.FC<AICopilotBarProps> = ({ projectId, onRefetch
               </div>
 
               <div
-                className={`p-3 rounded-2xl max-w-[95%] leading-relaxed text-xs space-y-2 ${
+                className={`p-3 rounded-2xl max-w-[95%] leading-relaxed text-xs space-y-2.5 ${
                   m.sender === 'user'
                     ? 'bg-[#5B5CEB] text-white font-medium rounded-tr-none shadow-sm'
                     : m.rejection
@@ -251,24 +262,43 @@ export const AICopilotBar: React.FC<AICopilotBarProps> = ({ projectId, onRefetch
               >
                 <p className="whitespace-pre-wrap font-medium">{m.text}</p>
 
-                {/* Structured AI Output Rendering */}
+                {/* Structured AI Output Cards */}
                 {m.execution_result && (
-                  <div className="pt-2 border-t border-slate-100 space-y-2 text-[11px]">
+                  <div className="pt-2.5 border-t border-slate-100 space-y-2 text-[11px]">
+                    {/* Planner Card */}
                     {m.execution_result.planner?.executive_summary && (
                       <div className="p-2.5 rounded-xl bg-[#F7F8FC] border border-slate-200 space-y-1">
-                        <div className="font-extrabold text-[#5B5CEB] text-[10px] uppercase">Business Plan & Vision</div>
+                        <div className="font-extrabold text-[#5B5CEB] text-[10px] uppercase flex items-center gap-1">
+                          <FileText className="w-3 h-3 text-[#5B5CEB]" />
+                          <span>Business Plan & Vision</span>
+                        </div>
                         <p className="text-[#0F172A] text-[10px] leading-relaxed line-clamp-2">{m.execution_result.planner.executive_summary}</p>
                       </div>
                     )}
 
+                    {/* Financials Card */}
                     {m.execution_result.finance?.seed_ask_inr && (
                       <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between text-[10px]">
-                        <span className="font-bold text-emerald-900">Seed Ask: {m.execution_result.finance.seed_ask_inr}</span>
+                        <div className="flex items-center gap-1 font-bold text-emerald-900">
+                          <DollarSign className="w-3 h-3 text-emerald-600" />
+                          <span>Seed Ask: {m.execution_result.finance.seed_ask_inr}</span>
+                        </div>
                         <span className="font-mono text-emerald-700 font-extrabold">Burn: ₹{(m.execution_result.finance.monthly_burn_rate_inr / 100000).toFixed(1)}L/mo</span>
                       </div>
                     )}
 
-                    {/* LangSmith Trace Link Contract */}
+                    {/* Pitch Deck Card */}
+                    {m.execution_result.investor_deck?.overall_score && (
+                      <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 flex items-center justify-between text-[10px]">
+                        <div className="flex items-center gap-1 font-bold text-purple-900">
+                          <Presentation className="w-3 h-3 text-purple-600" />
+                          <span>Pitch Deck Score: {m.execution_result.investor_deck.overall_score}/100</span>
+                        </div>
+                        <span className="font-mono text-purple-700 font-extrabold">{m.execution_result.investor_deck.slides?.length || 10} Slides</span>
+                      </div>
+                    )}
+
+                    {/* Execution Telemetry & LangSmith Trace Link */}
                     <div className="pt-1 flex items-center justify-between text-[9px] font-mono text-[#64748B]">
                       <span>Latency: {m.execution_result.latency_ms || 450}ms • {m.execution_result.tokens_consumed || 1200} Tokens</span>
                       {m.trace_url ? (
