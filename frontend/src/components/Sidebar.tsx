@@ -34,9 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', onTabC
     { id: 'marketing_strategy', label: 'Marketing Strategy', icon: Megaphone, color: 'text-[#FF6A3D]' },
     { id: 'investor_deck', label: 'Investor Deck', icon: Presentation, color: 'text-[#8C52FF]' },
     { id: 'downloads', label: 'Downloads Bundle', icon: Download, color: 'text-[#26C281]' },
-    { id: 'evaluation', label: 'Evaluation & Traces', icon: BarChart2, color: 'text-[#5B5CEB]' },
-    { id: 'audit_trail', label: 'Audit Trail', icon: History, color: 'text-[#00C6AE]' },
-    { id: 'version_history', label: 'Version History', icon: GitBranch, color: 'text-[#8C52FF]' },
+    { id: 'evaluation', label: 'Evaluation & Traces', icon: BarChart2, color: 'text-[#5B5CEB]' }
   ];
 
   return (

@@ -17,8 +17,6 @@ import { MarketingStrategyTab } from '@/components/workspace/MarketingStrategyTa
 import { InvestorDeckTab } from '@/components/workspace/InvestorDeckTab';
 import { DownloadsTab } from '@/components/workspace/DownloadsTab';
 import { EvaluationTab } from '@/components/workspace/EvaluationTab';
-import { AuditTrailTab } from '@/components/workspace/AuditTrailTab';
-import { VersionHistoryTab } from '@/components/workspace/VersionHistoryTab';
 import { AICopilotBar } from '@/components/workspace/AICopilotBar';
 import { CommandPalette } from '@/components/CommandPalette';
 
@@ -316,8 +314,6 @@ export default function WorkspacePage() {
           {activeTab === 'investor_deck' && <InvestorDeckTab projectId={projectId} data={workspaceData.investor_decks} onRefetch={refetchWorkspaceData} />}
           {activeTab === 'downloads' && <DownloadsTab projectId={projectId} data={workspaceData} />}
           {activeTab === 'evaluation' && <EvaluationTab projectId={projectId} data={workspaceData.evaluations} />}
-          {activeTab === 'audit_trail' && <AuditTrailTab logs={workspaceData.audit_logs} />}
-          {activeTab === 'version_history' && <VersionHistoryTab projectId={projectId} />}
         </main>
       </div>
 
