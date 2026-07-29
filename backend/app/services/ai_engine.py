@@ -222,9 +222,11 @@ class LangGraphOrchestrator:
 
     async def _marketing_node(self, state: VentureSwarmState) -> Dict[str, Any]:
         sys = f"You are the Chief Marketing Officer Agent for '{state['name']}' ({state['industry']})."
-        usr = f"Solution: {state['solution']}\nSynthesize GTM strategy and acquisition channels. Return JSON with keys: positioning, icp, channels (array of {{name, category, metrics}}), content_strategy."
+        usr = f"Solution: {state['solution']}\nSynthesize GTM strategy and acquisition channels. Return JSON with keys: positioning_statement, icp, channels (array of {{name, category, metrics}}), content_strategy."
         res = self.generate_json_with_openai(sys, usr)
         tokens = res.pop("_tokens", 350)
+        if "positioning" in res and "positioning_statement" not in res:
+            res["positioning_statement"] = res["positioning"]
         return {"marketing": res, "tokens_consumed": state.get("tokens_consumed", 0) + tokens}
 
     async def _competitor_node(self, state: VentureSwarmState) -> Dict[str, Any]:

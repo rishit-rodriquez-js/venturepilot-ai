@@ -19,7 +19,7 @@ export const MarketingStrategyTab: React.FC<MarketingProps> = ({ data, projectId
 
   const projName = data?.project?.name || "Your Startup";
   const industry = data?.project?.industry || "Enterprise SaaS";
-  const positioning = data?.positioning || "The premier AI-powered platform transforming customer workflows through autonomous execution.";
+  const positioning = data?.positioning_statement || data?.positioning || "The premier AI-powered platform transforming customer workflows through autonomous execution.";
 
   const channels = data?.channels || [
     { name: "LinkedIn B2B Authority", category: 'digital', trend: "High Conversion", detail: "Founder-led thought leadership & automated executive DM campaigns.", metrics: "CAC: ₹3,400 • LTV: ₹48,000" },
