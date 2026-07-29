@@ -56,13 +56,18 @@ async def execute_project_workflow(project_id: str, req: ExecuteWorkflowRequest,
     state = project_service.get_project_by_id(project_id, current_user.user_id)
     proj = state.get("project", {})
 
-    # Run LangGraph Orchestration Pipeline
+    proj_name = proj.get("name", "My Venture")
+    proj_industry = proj.get("industry", "Enterprise SaaS")
+    proj_problem = proj.get("problem_statement", "Manual processes")
+    proj_solution = proj.get("solution_overview", "AI Solution")
+
+    # 1. Run LangGraph Orchestration Pipeline
     res = await ai_engine.run_orchestrated_pipeline(
         project_id=project_id,
-        name=proj.get("name", "Your Startup"),
-        industry=proj.get("industry", "Enterprise SaaS"),
-        problem=proj.get("problem_statement", "Manual processes"),
-        solution=proj.get("solution_overview", "AI Solution"),
+        name=proj_name,
+        industry=proj_industry,
+        problem=proj_problem,
+        solution=proj_solution,
         prompt=req.prompt
     )
 
@@ -73,9 +78,32 @@ async def execute_project_workflow(project_id: str, req: ExecuteWorkflowRequest,
             "detail": res.get("error", "Request rejected by domain guardrail.")
         }
 
-    # Update in-memory state and append real audit trail log
-    state["project"]["readiness_score"] = min(100, state["project"]["readiness_score"] + 1)
-    state["audit_trail"].insert(0, {
+    # 2. Synchronize multi-agent execution results into persisted state
+    if "planner" in res and isinstance(res["planner"], dict):
+        state["business_plan"] = {**state.get("business_plan", {}), **res["planner"]}
+    if "research" in res and isinstance(res["research"], dict):
+        state["market_research"] = {**state.get("market_research", {}), **res["research"]}
+    if "finance" in res and isinstance(res["finance"], dict):
+        state["financials"] = {**state.get("financials", {}), **res["finance"]}
+    if "marketing" in res and isinstance(res["marketing"], dict):
+        state["marketing_strategy"] = {**state.get("marketing_strategy", {}), **res["marketing"]}
+    if "investor_deck" in res and isinstance(res["investor_deck"], dict):
+        state["investor_deck"] = {**state.get("investor_deck", {}), **res["investor_deck"]}
+    if "technical_architecture" in res and isinstance(res["technical_architecture"], dict):
+        state["technical_architecture"] = {**state.get("technical_architecture", {}), **res["technical_architecture"]}
+    if "product_roadmap" in res and isinstance(res["product_roadmap"], dict):
+        state["product_roadmap"] = {**state.get("product_roadmap", {}), **res["product_roadmap"]}
+    if "competitor_analysis" in res and isinstance(res["competitor_analysis"], dict):
+        state["competitor_analysis"] = {**state.get("competitor_analysis", {}), **res["competitor_analysis"]}
+    if "evaluation" in res and isinstance(res["evaluation"], dict):
+        state["evaluation"] = {**state.get("evaluation", {}), **res["evaluation"]}
+
+    # Update readiness score to match investor deck score
+    deck_score = state.get("investor_deck", {}).get("overall_score", 92)
+    state["project"]["readiness_score"] = deck_score
+
+    # Append real audit trail log entry
+    audit_entry = {
         "timestamp": datetime.now().strftime("%H:%M:%S"),
         "agent": "LangGraph Swarm Engine",
         "action": f"EXECUTED_COMMAND: {req.prompt[:35]}...",
@@ -83,7 +111,11 @@ async def execute_project_workflow(project_id: str, req: ExecuteWorkflowRequest,
         "latency": f"{res['latency_ms']}ms",
         "tokens": res["tokens_consumed"],
         "trace_id": res["trace_id"]
-    })
+    }
+    state.setdefault("audit_trail", []).insert(0, audit_entry)
+
+    # 3. Persist state
+    project_service.save_project_state(project_id, state)
 
     return {
         "status": "success",
@@ -91,7 +123,7 @@ async def execute_project_workflow(project_id: str, req: ExecuteWorkflowRequest,
         "trace_id": res["trace_id"],
         "execution_result": res,
         "state": state,
-        "project": state.get("project", {})
+        "project": state["project"]
     }
 
 @router.post("/{project_id}/upload")
