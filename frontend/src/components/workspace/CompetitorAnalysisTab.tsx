@@ -1,146 +1,166 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Target, Shield, Globe, TrendingUp, Building2 } from 'lucide-react';
+import { Target, Shield, Globe, Building2, RefreshCw } from 'lucide-react';
+import { apiClient } from '@/lib/api';
+import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 
 interface CompProps {
   data?: any;
+  projectId?: string;
+  onRefetch?: () => void;
 }
 
-export const CompetitorAnalysisTab: React.FC<CompProps> = ({ data }) => {
+export const CompetitorAnalysisTab: React.FC<CompProps> = ({ data, projectId, onRefetch }) => {
+  const comp = data || {};
   const [region, setRegion] = useState<'India' | 'Global'>('India');
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
-  const defaultCompetitors = [
-    { name: "Your Startup", funding: "₹2.0 Crore Ask", strength: "Autonomous AI Agent Workflow + RAG", weakness: "Early brand awareness", moat: "Proprietary LangGraph Swarm Engine" },
-    { name: "Legacy SaaS Consultancies", funding: "Bootstrapped", strength: "Established corporate networks", weakness: "Manual execution & slow SLA turnaround", moat: "Human relationships" },
-    { name: "Global Generic AI Wrappers", funding: "$5M Seed", strength: "High initial marketing budget", weakness: "Lack of Indian statutory/tax alignment", moat: "Basic UI prompt wrapper" }
-  ];
+  const handleRegenerate = async () => {
+    if (!projectId) return;
+    setIsRegenerating(true);
+    try {
+      await apiClient.post(`/projects/${projectId}/execute`, {
+        project_id: projectId,
+        prompt: "Identify market competitors, gap analysis, and competitive moat"
+      });
+      if (onRefetch) onRefetch();
+    } catch (err: any) {
+      alert(`Competitor Execution Failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
-  const competitors = data?.competitors || defaultCompetitors;
-  const gapAnalysis = data?.gap_analysis || "Legacy providers charge high retainer fees with manual deliverables. VenturePilot AI delivers 10x faster execution with RAG memory.";
-  const competitiveAdvantage = data?.competitive_advantage || "Autonomous multi-agent orchestration with direct Supabase vector isolation and LangSmith auditability.";
+  const competitors = comp.competitors || [];
+  const isDataPresent = comp && (competitors.length > 0 || comp.gap_analysis || comp.competitive_advantage);
+
+  if (!isDataPresent) {
+    return (
+      <EmptyState
+        title="Competitor & Moat Analysis Has Not Been Generated Yet"
+        description="Run the Competitive Intelligence Agent to analyze market incumbents, statutory gap analysis, and sustainable competitive advantages."
+        actionText="Run Moat & Competitor Analysis (GPT-4o)"
+        isLoading={isRegenerating}
+        onAction={handleRegenerate}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-xl font-bold text-[#0F172A] flex items-center gap-2">
-            <Target className="w-5 h-5 text-[#5B5CEB]" />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 text-[#5B5CEB] border border-indigo-200">
+              <Target className="w-4 h-4" />
+            </div>
             <span>Competitor & Strategic Moat Analysis</span>
           </h2>
-          <p className="text-xs text-[#64748B]">Benchmark against market incumbents and statutory ecosystem schemes.</p>
+          <p className="text-xs text-[#64748B]">Synthesized by Competitive Intelligence Agent with Supabase DB persistence.</p>
         </div>
 
-        {/* Region Selector */}
-        <div className="flex items-center gap-2 bg-[#F7F8FC] p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
-          <Globe className="w-4 h-4 text-[#5B5CEB] ml-2" />
-          <span>Region:</span>
-          <button
-            onClick={() => setRegion('India')}
-            className={`px-3 py-1 rounded-xl transition ${
-              region === 'India' ? 'bg-[#5B5CEB] text-white shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'
-            }`}
-          >
-            India (₹ Lakhs/Cr)
-          </button>
-          <button
-            onClick={() => setRegion('Global')}
-            className={`px-3 py-1 rounded-xl transition ${
-              region === 'Global' ? 'bg-[#5B5CEB] text-white shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'
-            }`}
-          >
-            Global ($ USD)
-          </button>
+        <div className="flex items-center gap-2">
+          {projectId && (
+            <button
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+              className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-[#0F172A] text-xs font-bold hover:border-[#5B5CEB] shadow-2xs inline-flex items-center gap-1.5 disabled:opacity-50 transition"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#5B5CEB] ${isRegenerating ? 'animate-spin' : ''}`} />
+              <span>{isRegenerating ? 'Regenerating...' : 'Regenerate Analysis'}</span>
+            </button>
+          )}
+
+          {/* Region Selector */}
+          <div className="flex items-center gap-1.5 bg-[#F7F8FC] p-1 rounded-2xl border border-slate-200 text-xs font-bold">
+            <button
+              onClick={() => setRegion('India')}
+              className={`px-3 py-1 rounded-xl transition ${
+                region === 'India' ? 'bg-[#5B5CEB] text-white shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              India (₹ Cr)
+            </button>
+            <button
+              onClick={() => setRegion('Global')}
+              className={`px-3 py-1 rounded-xl transition ${
+                region === 'Global' ? 'bg-[#5B5CEB] text-white shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              Global ($ USD)
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Indian Ecosystem Statutory Schemes Banner */}
-      <div className="p-5 rounded-[24px] bg-gradient-to-r from-indigo-50 via-teal-50 to-white border border-indigo-200/80 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#5B5CEB]">
-            <Building2 className="w-4 h-4 text-[#00C6AE]" />
-            <span>Indian Statutory & VC Ecosystem Integration</span>
-          </div>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#26C281] border border-emerald-200">
-            DPIIT Recognized
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
-            <div className="font-bold text-[#0F172A]">Startup India (SISFS)</div>
-            <div className="text-[10px] text-[#26C281] font-extrabold">Grant up to ₹50 Lakhs</div>
-          </div>
-          <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
-            <div className="font-bold text-[#0F172A]">SIDBI Fund of Funds</div>
-            <div className="text-[10px] text-[#5B5CEB] font-extrabold">₹10,000 Cr Corpus</div>
-          </div>
-          <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
-            <div className="font-bold text-[#0F172A]">ONDC & UPI Stack</div>
-            <div className="text-[10px] text-[#8C52FF] font-extrabold">Zero Payment Friction</div>
-          </div>
-          <div className="p-3 rounded-2xl bg-white border border-slate-200 space-y-0.5">
-            <div className="font-bold text-[#0F172A]">DPIIT 80-IAC Tax Exemption</div>
-            <div className="text-[10px] text-[#26C281] font-extrabold">3 Years 100% Tax Holiday</div>
-          </div>
-        </div>
-      </div>
+      {/* AI Metadata Badge */}
+      <AIMetadataBadge
+        agent="Competitive Intelligence Agent"
+        model="gpt-4o"
+        tokens={comp._tokens || 350}
+        latencyMs={comp._latency_ms}
+        traceId={comp.trace_id}
+        traceUrl={comp.langsmith_trace_url}
+        confidence="95%"
+      />
 
       {/* Competitors Matrix Table */}
-      <div className="glass-exec-card p-6 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F172A] flex items-center justify-between">
-          <span>Competitive Landscape Comparison</span>
-          <span className="text-[10px] text-[#64748B] font-mono">Currency: {region === 'India' ? 'INR (₹)' : 'USD ($)'}</span>
-        </h3>
+      {competitors.length > 0 && (
+        <div className="glass-exec-card p-6 space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F172A] flex items-center justify-between">
+            <span>Competitive Landscape Comparison</span>
+            <span className="text-[10px] text-[#64748B] font-mono">Currency: {region === 'India' ? 'INR (₹)' : 'USD ($)'}</span>
+          </h3>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-[#64748B] font-bold uppercase text-[10px]">
-                <th className="pb-3">Company</th>
-                <th className="pb-3">Funding Raised</th>
-                <th className="pb-3">Key Advantage</th>
-                <th className="pb-3">Vulnerability</th>
-                <th className="pb-3">Defensible Moat</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {competitors.map((c: any, idx: number) => (
-                <tr key={idx} className={c.name.includes("Your") ? "bg-indigo-50/50 font-bold" : ""}>
-                  <td className="py-3.5 px-2 text-[#0F172A]">
-                    {c.name}
-                    {c.name.includes("Your") && (
-                      <span className="ml-2 text-[9px] px-2 py-0.5 rounded bg-[#5B5CEB] text-white">Active</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-2 text-[#5B5CEB] font-extrabold">{c.funding}</td>
-                  <td className="py-3.5 px-2 text-[#64748B]">{c.strength}</td>
-                  <td className="py-3.5 px-2 text-rose-600">{c.weakness}</td>
-                  <td className="py-3.5 px-2 text-[#26C281] font-semibold">{c.moat}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-[#64748B] font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Competitor Name</th>
+                  <th className="py-2.5 px-3">Funding / Scale</th>
+                  <th className="py-2.5 px-3">Core Strength</th>
+                  <th className="py-2.5 px-3">Key Weakness</th>
+                  <th className="py-2.5 px-3">Defensible Moat</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {competitors.map((item: any, idx: number) => (
+                  <tr key={idx} className="hover:bg-slate-50/80 transition">
+                    <td className="py-3 px-3 font-bold text-[#0F172A]">{item.name}</td>
+                    <td className="py-3 px-3 text-[#5B5CEB] font-bold">{item.funding}</td>
+                    <td className="py-3 px-3 text-[#26C281]">{item.strength}</td>
+                    <td className="py-3 px-3 text-rose-600">{item.weakness}</td>
+                    <td className="py-3 px-3 font-bold text-[#8C52FF]">{item.moat}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Strategic Moat & Market Gap */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Gap Analysis & Moat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="glass-exec-card p-6 space-y-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-[#5B5CEB] flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#00C6AE]" />
-            <span>Market Gap & Opportunity Analysis</span>
-          </h4>
-          <p className="text-xs text-[#64748B] leading-relaxed">{gapAnalysis}</p>
+          <h3 className="text-xs font-extrabold text-[#5B5CEB] uppercase tracking-wider flex items-center gap-2">
+            <Shield className="w-4 h-4 text-[#5B5CEB]" />
+            <span>Market Gap Analysis</span>
+          </h3>
+          <p className="text-xs text-[#0F172A] leading-relaxed font-medium">
+            {comp.gap_analysis || "Waiting for AI generation..."}
+          </p>
         </div>
 
         <div className="glass-exec-card p-6 space-y-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-[#8C52FF] flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#8C52FF]" />
-            <span>Your Defensible Competitive Advantage</span>
-          </h4>
-          <p className="text-xs text-[#64748B] leading-relaxed">{competitiveAdvantage}</p>
+          <h3 className="text-xs font-extrabold text-[#26C281] uppercase tracking-wider flex items-center gap-2">
+            <Shield className="w-4 h-4 text-[#26C281]" />
+            <span>Competitive Advantage & Moat</span>
+          </h3>
+          <p className="text-xs text-[#0F172A] leading-relaxed font-medium">
+            {comp.competitive_advantage || "Waiting for AI generation..."}
+          </p>
         </div>
       </div>
     </div>

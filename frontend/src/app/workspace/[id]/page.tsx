@@ -284,11 +284,11 @@ export default function WorkspacePage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#26C281] border border-emerald-200">
-                  {currentProj?.industry || 'Enterprise SaaS'}
+                  {currentProj?.industry || 'Venture Industry'}
                 </span>
                 <span className="text-[10px] text-[#64748B] font-mono">ID: {currentProj?.id}</span>
               </div>
-              <h1 className="text-2xl font-extrabold text-[#0F172A]">{currentProj?.name || 'My Venture'}</h1>
+              <h1 className="text-2xl font-extrabold text-[#0F172A]">{currentProj?.name || 'Venture Workspace'}</h1>
               <p className="text-xs text-[#64748B] mt-1">{currentProj?.tagline || currentProj?.solution_overview}</p>
             </div>
 

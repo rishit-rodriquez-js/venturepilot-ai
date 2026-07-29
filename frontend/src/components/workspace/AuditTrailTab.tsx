@@ -1,19 +1,20 @@
 "use client";
 
 import React from 'react';
-import { History, ExternalLink, Sparkles, Inbox } from 'lucide-react';
+import { History, ExternalLink, Sparkles } from 'lucide-react';
+import { EmptyState } from './WorkspaceUIUtils';
 
 interface AuditProps {
   logs?: any[];
 }
 
 export const AuditTrailTab: React.FC<AuditProps> = ({ logs = [] }) => {
-  const langsmithWorkspaceUrl = "https://smith.langchain.com/projects/VenturePilot-AI";
+  const langsmithWorkspaceUrl = "https://smith.langchain.com/projects/p/VenturePilot-AI";
 
   return (
     <div className="space-y-6">
       {/* Header Banner with Live LangSmith Workspace Button */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-xl font-extrabold text-[#0F172A] flex items-center gap-2">
             <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 text-[#00C6AE] border border-emerald-200">
@@ -31,24 +32,17 @@ export const AuditTrailTab: React.FC<AuditProps> = ({ logs = [] }) => {
           className="px-4 py-2.5 rounded-xl bg-[#5B5CEB] hover:bg-[#4a4bd9] text-white text-xs font-extrabold shadow-md flex items-center gap-2 transition shrink-0"
         >
           <Sparkles className="w-4 h-4 text-emerald-300" />
-          <span>Open Live LangSmith Workspace (VenturePilot-AI)</span>
+          <span>Open Live LangSmith Project Workspace</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>
 
       <div className="glass-exec-card p-6 space-y-4">
         {logs.length === 0 ? (
-          <div className="py-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-[#5B5CEB] flex items-center justify-center mx-auto border border-indigo-100">
-              <Inbox className="w-6 h-6" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-sm font-extrabold text-[#0F172A]">No Agent Executions Recorded Yet</h4>
-              <p className="text-xs text-[#64748B] max-w-sm mx-auto">
-                Execute an AI Co-Founder prompt, upload a RAG document, or trigger a section regeneration to record live LangSmith execution traces.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            title="No Agent Executions Recorded Yet"
+            description="Execute an AI Co-Founder prompt, upload a RAG document, or trigger a section regeneration to record live LangSmith execution traces."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
@@ -67,6 +61,7 @@ export const AuditTrailTab: React.FC<AuditProps> = ({ logs = [] }) => {
                 {logs.map((l: any, idx: number) => {
                   const displayTime = l.timestamp ? (l.timestamp.includes('T') ? new Date(l.timestamp).toLocaleTimeString() : l.timestamp) : 'Just Now';
                   const traceDisplay = l.trace_id ? (l.trace_id.length > 18 ? `${l.trace_id.slice(0, 16)}...` : l.trace_id) : 'Active Run';
+                  const traceUrl = l.trace_url || (l.trace_id ? `https://smith.langchain.com/projects/p/VenturePilot-AI/r/${l.trace_id}` : langsmithWorkspaceUrl);
 
                   return (
                     <tr key={idx} className="hover:bg-[#F7F8FC] transition">
@@ -78,11 +73,11 @@ export const AuditTrailTab: React.FC<AuditProps> = ({ logs = [] }) => {
                           {l.status || 'Completed'}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-mono text-[#5B5CEB] font-bold">{l.latency || '0.3s'}</td>
+                      <td className="py-3 px-3 font-mono text-[#5B5CEB] font-bold">{l.latency || '450ms'}</td>
                       <td className="py-3 px-3 font-mono text-[#64748B]">{l.tokens ? l.tokens.toLocaleString() : '0'}</td>
                       <td className="py-3 px-3 font-mono text-[10px] text-[#8C52FF]">
                         <a
-                          href={langsmithWorkspaceUrl}
+                          href={traceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Inspect live run tree on LangSmith"

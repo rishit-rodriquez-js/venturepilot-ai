@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MapPin, Calendar, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Map, Calendar, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { AIMetadataBadge, EmptyState } from './WorkspaceUIUtils';
 
 interface RoadmapProps {
   data?: any;
@@ -11,78 +12,105 @@ interface RoadmapProps {
 }
 
 export const ProductRoadmapTab: React.FC<RoadmapProps> = ({ data, projectId, onRefetch }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const defaultPhases = [
-    { phase: "Phase 1: Validation & Vector Core", timeline: "Q1 2026", deliverables: ["pgvector Embeddings Engine", "Lean Canvas Generator", "Basic RAG Retrieval"] },
-    { phase: "Phase 2: Enterprise Security & Governance", timeline: "Q2 2026", deliverables: ["Supabase RLS Enforcer", "Audit Log Trail", "JSON / Markdown Downloads"] },
-    { phase: "Phase 3: Institutional Scale & Multi-Tenant OS", timeline: "Q3-Q4 2026", deliverables: ["LangSmith Agent Tracing", "Investor Defense Simulator", "Automated Financial Scenario Modeling"] }
-  ];
-
-  const rawPhases = data?.phases;
-  const phases = (rawPhases && Array.isArray(rawPhases) && rawPhases.length > 0) ? rawPhases : defaultPhases;
+  const rm = data || {};
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const handleRegenerate = async () => {
     if (!projectId) return;
-    setIsGenerating(true);
+    setIsRegenerating(true);
     try {
       await apiClient.post(`/projects/${projectId}/execute`, {
         project_id: projectId,
-        prompt: "Synthesize Product Roadmap and Feature Timeline"
+        prompt: "Synthesize 3 quarterly product roadmap release phases with deliverables"
       });
       if (onRefetch) onRefetch();
     } catch (err: any) {
-      alert(`Backend Execution Error: ${err.response?.data?.detail || err.message}`);
+      alert(`Roadmap Execution Failed: ${err.response?.data?.detail || err.message}`);
     } finally {
-      setIsGenerating(false);
+      setIsRegenerating(false);
     }
   };
 
+  const phases = rm.phases || [];
+  const isDataPresent = rm && phases.length > 0;
+
+  if (!isDataPresent) {
+    return (
+      <EmptyState
+        title="Product Roadmap Has Not Been Generated Yet"
+        description="Run the Chief Product Officer Agent to synthesize quarterly release phases, timeline milestones, and core engineering deliverables."
+        actionText="Synthesize Product Roadmap (GPT-4o)"
+        isLoading={isRegenerating}
+        onAction={handleRegenerate}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Title */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-xl font-extrabold text-[#0F172A] flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#5B5CEB]" />
-            <span>Product Roadmap & Milestone Timeline</span>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-50 text-[#FFB648] border border-amber-200">
+              <Map className="w-4 h-4" />
+            </div>
+            <span>Autonomous Product Roadmap & Release Phases</span>
           </h2>
-          <p className="text-xs text-[#64748B]">Quarterly product milestones, feature priorities, and engineering release schedules.</p>
+          <p className="text-xs text-[#64748B]">Synthesized by CPO Product Roadmap Agent with Supabase database persistence.</p>
         </div>
 
         <button
           onClick={handleRegenerate}
-          disabled={isGenerating}
-          className="px-4 py-2 rounded-xl bg-[#5B5CEB] hover:bg-[#4a4bd9] text-white text-xs font-extrabold shadow-md flex items-center gap-2 transition disabled:opacity-50"
+          disabled={isRegenerating}
+          className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-[#0F172A] text-xs font-bold hover:border-[#FFB648] shadow-2xs inline-flex items-center gap-1.5 disabled:opacity-50 transition"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-          <span>Regenerate AI Roadmap</span>
+          <RefreshCw className={`w-3.5 h-3.5 text-[#FFB648] ${isRegenerating ? 'animate-spin' : ''}`} />
+          <span>{isRegenerating ? 'Regenerating...' : 'Regenerate Roadmap'}</span>
         </button>
       </div>
 
+      {/* AI Metadata Badge */}
+      <AIMetadataBadge
+        agent="CPO Product Roadmap Agent"
+        model="gpt-4o"
+        tokens={rm._tokens || 300}
+        latencyMs={rm._latency_ms}
+        traceId={rm.trace_id}
+        traceUrl={rm.langsmith_trace_url}
+        confidence="94%"
+      />
+
+      {/* Roadmap Timeline Cards */}
       <div className="space-y-4">
-        {phases.map((p: any, idx: number) => {
-          const deliverablesList = Array.isArray(p.deliverables) ? p.deliverables : [p.deliverable || "Feature Delivery"];
-          return (
-            <div key={idx} className="glass-exec-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold text-[#5B5CEB]">{p.phase || p.title}</span>
-                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-[#5B5CEB] font-mono">
-                    {p.timeline || p.status || 'Active'}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {deliverablesList.map((d: string, dIdx: number) => (
-                    <span key={dIdx} className="text-[11px] px-3 py-1 rounded-xl bg-[#F7F8FC] border border-slate-200 text-[#0F172A] flex items-center gap-1.5 font-medium">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#26C281]" />
-                      <span>{d}</span>
-                    </span>
-                  ))}
-                </div>
+        {phases.map((ph: any, idx: number) => (
+          <div key={idx} className="glass-exec-card p-6 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-extrabold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                  {ph.phase || `Phase ${idx + 1}`}
+                </span>
+                <span className="font-extrabold text-[#0F172A] text-sm">{ph.title}</span>
+              </div>
+              <span className="text-xs font-bold text-[#5B5CEB] flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" />
+                {ph.timeline}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Engineering Deliverables:</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {(ph.deliverables || []).map((d: string, dIdx: number) => (
+                  <div key={dIdx} className="flex items-start gap-2 text-xs text-[#0F172A] font-medium p-2 rounded-xl bg-[#F7F8FC]">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#26C281] shrink-0 mt-0.5" />
+                    <span>{d}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
